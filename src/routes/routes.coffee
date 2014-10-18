@@ -21,4 +21,7 @@ router.get '/client/:job_id', (req, res) ->
 router.get '/worker', (req, res) ->
   res.render 'worker'
 
+router.get '/demo', (req, res) ->
+  res.render 'iframed.jade'
+
 module.exports = router
