@@ -2,8 +2,11 @@ doctype html
 html
   head
     link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
+    link(rel='stylesheet', href='/stylesheets/jquery-linedtextarea.css')
     script(src='http://code.jquery.com/jquery-2.1.1.min.js')
-    script(src='https://cdn.firebase.com/js/client/1.1.0/firebase.js')
+    script(src='/javascripts/external/firebase.js')
+    script(src='/javascripts/external/jquery-linedtextarea.js')
     script(src='/javascripts/bundle.js')
   body
     block content
