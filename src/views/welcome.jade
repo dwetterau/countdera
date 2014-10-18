@@ -1,4 +1,19 @@
 extends layout
 
+
 block content
-    body "Welcome!"
+    body
+    div(class="page-header")
+    h1 Welcome to Cloud.
+    span We are Countdera, not Cloudera.
+
+    span You can submit your own javascript jobs that will be served up and run by people visiting any page that contains adds our services.
+    br
+    span The internet can haz money witout ads
+    div(class="form-group")
+        p(class="bs-component")
+            a( href="/client" id="client" class="btn btn-primary btn-lg") Create a job
+            &nbsp
+            a( href="/worker" id="worker" class="btn btn-primary btn-lg") Run some jobs
+
+
