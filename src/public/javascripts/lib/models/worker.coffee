@@ -1,6 +1,8 @@
 firebase = require '../firebase_client.coffee'
 config = require '../../../../config.coffee'
 constants = require '../../../../constants.coffee'
+http = require 'http'
+q = require 'q'
 
 class Worker
   constructor: () ->
@@ -47,8 +49,9 @@ class Worker
     console.log "Got a message!", message
     message_type = message.name
     switch(message_type)
-      when "MAP_START" then start_map(message)
-      when "JOB_DONE" then finish_job(message)
+      when "MAP_START" then @start_map(message)
+      when "JOB_DONE" then @finish_job(message)
+      when "REDUCE_NODES" then @send_map_data(message)
 
 
 
@@ -58,58 +61,96 @@ class Worker
       @process_message(new_child.val())
       message_ref.child(new_child.name()).remove()
 
-  send_to: (client, message, callback) ->
-    other = firebase.SERVER_MESSAGE_REF.child(client)
+  send_to_server: (message, callback) ->
+    other = firebase.SERVER_MESSAGE_REF
     other.push message, callback
 
+  send_to_friend: (client, message, callback) ->
+    other = firebase.WORKER_MESSAGE_REF.child(client)
+    other.push message, callback
 
   finish_job: () ->
+    @data = null
+    @mappings = null
+    #todo invalidate everything
     @status.state = 'IDLE'
 
-
   start_map: (map_start_message) ->
-    job_id = map_start_message.job_id
-    url = map_start_message.url
     @status.state = 'MAPPER'
+    @job_id = map_start_message.job_id
 
-    get_data(url)
-    #TODO: retreive mapping code from firebase
-
-    get_mapping_code(job_id)
-
-    run_map_job()
-
+    get_data(map_start_message.url).then () ->
+      return get_mapping_code()
+    .then () ->
+      run_map_job()
 
   get_data: (url) ->
-
+    deferred = q.defer()
     @data = ''
-    http.get { host: 'url' }, (res) ->
+    http.get { host: url }, (res) ->
+      res.on 'data', (chunk) ->
+        @data += chunk.toString()
+      res.on 'end', () ->
+        deferred.resolve()
 
-    res.on 'data', (chunk) ->
-      @data += chunk.toString()
+    return deferred.promise
 
-  get_mapping_code: (job_id) ->
+  get_mapping_code: () ->
     #TODO figure out where this is
 
     @map_code = null
 
-
   run_map_job: () ->
-    context = {data: @data}
-    @mappings = eval(context, @map_code)
+    @mappings = []
+
+    emit = (key, object) =>
+      @mappings.push [key, object]
+
+    map = (lines) =>
+      eval(@map_code)
+
+    map(@data.split('\n'))
 
   map_done: () ->
     #TODO figure out if this is correct
-    firebase.git
+    send_to_server "done mapping\n"+@job_id, () ->
+      @status.state = 'MAPPER_DONE'
 
 
   send_map_data: (reduce_node_list) ->
+
+    #TODO: is this how array splicing works in coffee?
+    num_nodes = reduce_node_list.nodes.length
+    for clients in reduce_node_list.nodes
+      send_to_friend to_send_client {name : 'START_MAP_OUTPUT '+@_id} null
+
+    for key in mappings.keys
+      hash = hashval(key)
+      to_send_client = reduce_node_list[hash % num_nodes]
+      send_to_friend to_send_client {name : 'MAP_OUTPUT '+@_id, key : @mappings[key]} null
+
+    for clients in reduce_node_list.nodes
+      send_to_friend to_send_client {name : 'END_MAP_OUTPUT '+@_id} null
+
 
   start_reduce: (start_reduce_message) ->
 
   add_map_output: (map_output_message) ->
 
   finish_reduce: () ->
+
+  hashval: (s) ->
+    hash = 0
+    chr = null
+
+    if s.length == 0
+        return hash;
+    for i in s.length
+      chr   = this.charCodeAt(i)
+      hash  = ((hash << 5) - hash) + chr;
+      hash |= 0
+
+    return hash;
 
 
 module.exports = {Worker}
