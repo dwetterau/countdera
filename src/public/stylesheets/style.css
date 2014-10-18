@@ -1,0 +1,20 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+div#input_div {
+    height: 300px;
+    box-shadow: 5px 5px 5px #888888;
+}
+
+div[contenteditable=true]#input {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    font-family: "Open Sans","lucida grande","Segoe UI",arial,verdana,"lucida sans unicode",tahoma,sans-serif;
+}
