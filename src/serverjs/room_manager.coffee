@@ -18,7 +18,7 @@ module.exports =
     return active_clients
 
   listen: () ->
-    client_status_ref = firebase.CLIENT_STATUS_REF
+    client_status_ref = firebase.WORKER_STATUS_REF
     client_status_ref.on 'child_changed', (snapshot) =>
       @_clients[snapshot.name()] = snapshot.val()
     client_status_ref.on 'child_removed', (snapshot) =>

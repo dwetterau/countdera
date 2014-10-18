@@ -2,12 +2,14 @@
 
 module.exports =
   run: () ->
-    temporary_client = new Client()
-    temporary_client.init()
+    room_id = get_room_id_from_url()
+    client = new Client(room_id)
+    client.init()
 
-    setTimeout () ->
-      id1 = temporary_client.id()
-      html_string = '<div>Client id=' + id1 + '</div>'
-      $('#id_div').html html_string
-    , 1000
+    setTimeout(add_handlers, 100)
 
+add_handlers = (client) ->
+
+get_room_id_from_url = () ->
+  path = window.location.pathname
+  return path.slice(1, path.lastIndexOf('/'))
