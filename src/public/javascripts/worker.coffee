@@ -10,7 +10,3 @@ module.exports =
       html_string = '<div>Worker id=' + id1 + '</div>'
       $('#id_div').html html_string
     , 1000
-
-    ###$('.lined').linedtextarea(
-      {selectedLine: 1}
-    )###

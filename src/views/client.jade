@@ -1,8 +1,45 @@
 extends layout
 
 block content
-    body You are the master!
-        div Your room is = #{room_id}
-        div Connected Clients
-            div(id="connected_clients")
+    body
+        div(class="form-horizontal")
+            div(class="page-header")
+                h1(id="header_text") Enter your map code:
+            div(id="map_div")
+                div(class="form-group")
+                    label(for="map_code_area" class="col-lg-2 control-label") Code:
+                    div(class="col-lg-8")
+                        textarea(id="map_code_area" class="form-control" rows="15" cols="40").
+                            function map(lines) { // Don't remove this line
+
+                                emit(key, serializable_object) // Example emitting map result
+
+                            } // Don't remove this line
+                div(class="form-group")
+                    div(class="col-lg-10 col-lg-offset-2")
+                        button(id="save_map" class="btn btn-primary") Save Map Code
+
+            div(id="reduce_div" style="display:none;") 
+                div(class="form-group")
+                    label(for="reduce_code_area" class="col-lg-2 control-label") Code:
+                    div(class="col-lg-8")
+                        textarea(id="reduce_code_area" class="form-control" rows="15" cols="40").
+                            function reduce(key, map_output_list) { // Don't remove this line
+
+                                emit(output_line) // Example emitting output
+
+                            } // Don't remove this line
+                div(class="form-group")
+                    div(class="col-lg-10 col-lg-offset-2")
+                        button(id="save_reduce" class="btn btn-primary") Save Reduce Code
+
+            div(id="url_div" style="display:none;")
+                div(class="form-group")
+                    label(for="url_area" class="col-lg-2 control-label") Url:
+                    div(class="col-lg-8")
+                        textarea(id="url_area" class="form-control" rows="15" cols="40").
+                            data_url1, data_url2
+                div(class="form-group")
+                    div(class="col-lg-10 col-lg-offset-2")
+                        button(id="save_urls" class="btn btn-primary") Run Job!
 
