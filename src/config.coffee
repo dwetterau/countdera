@@ -4,5 +4,4 @@ if window?
     hostname = window.location.host
 
 module.exports =
-  FIREBASE_NAME: 'FIREBASE_NAME_HERE'
-
+  FIREBASE_NAME: 'countdera'
