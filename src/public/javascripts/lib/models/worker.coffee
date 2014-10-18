@@ -109,8 +109,6 @@ class Worker
 
   add_map_output: (map_output_message) ->
 
-  start_reduce: () ->
-
   finish_reduce: () ->
 
 
