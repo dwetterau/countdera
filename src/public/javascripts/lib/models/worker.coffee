@@ -53,8 +53,6 @@ class Worker
       when "JOB_DONE" then @finish_job(message)
       when "REDUCE_NODES" then @send_map_data(message)
 
-
-
   listen: () ->
     message_ref = firebase.WORKER_MESSAGE_REF.child(@_id)
     message_ref.on 'child_added', (new_child) =>
@@ -72,6 +70,7 @@ class Worker
   finish_job: () ->
     @data = null
     @mappings = null
+    @map_code  = null
     #todo invalidate everything
     @status.state = 'IDLE'
 
@@ -79,9 +78,9 @@ class Worker
     @status.state = 'MAPPER'
     @job_id = map_start_message.job_id
 
-    get_data(map_start_message.url).then () ->
+    get_data(map_start_message.url).then(() ->
       return get_mapping_code()
-    .then () ->
+    ).then () ->
       run_map_job()
 
   get_data: (url) ->
@@ -112,25 +111,22 @@ class Worker
     map(@data.split('\n'))
 
   map_done: () ->
-    #TODO figure out if this is correct
-    send_to_server "done mapping\n"+@job_id, () ->
+    msg = {name: "MAPPER_DONE", id: @_id}
+    send_to_server msg, () ->
       @status.state = 'MAPPER_DONE'
 
-
   send_map_data: (reduce_node_list) ->
-
-    #TODO: is this how array splicing works in coffee?
     num_nodes = reduce_node_list.nodes.length
     for clients in reduce_node_list.nodes
-      send_to_friend to_send_client {name : 'START_MAP_OUTPUT '+@_id} null
+      send_to_friend to_send_client {name : 'START_MAP_OUTPUT ', id: @_id} null
 
-    for key in mappings.keys
+    for [key, object] in @mappings
       hash = hashval(key)
       to_send_client = reduce_node_list[hash % num_nodes]
-      send_to_friend to_send_client {name : 'MAP_OUTPUT '+@_id, key : @mappings[key]} null
+      send_to_friend to_send_client {name : 'MAP_OUTPUT ', id: @_id, key : object} null
 
     for clients in reduce_node_list.nodes
-      send_to_friend to_send_client {name : 'END_MAP_OUTPUT '+@_id} null
+      send_to_friend to_send_client {name : 'END_MAP_OUTPUT ', id: @_id} null
 
 
   start_reduce: (start_reduce_message) ->
@@ -139,7 +135,7 @@ class Worker
 
   finish_reduce: () ->
 
-  hashval: (s) ->
+  hashval (s) =>
     hash = 0
     chr = null
 
