@@ -12,8 +12,8 @@ module.exports =
 
 add_handlers = (client) ->
   $('#save_map').click () ->
-    # TODO Call the function to save out the output
     map_code = trim_code($('#map_code_area').val())
+    client.save_map_code(map_code)
 
     # Switch to the reduce code view.
     $("#header_text").html("Enter your reduce code:")
@@ -21,17 +21,17 @@ add_handlers = (client) ->
       $("#reduce_div").slideDown(300)
 
   $('#save_reduce').click () ->
-    # TODO Call the function to save out the output
     reduce_code = trim_code($('#reduce_code_area').val())
+    client.save_reduce_code(reduce_code)
 
-    # Switch to the reduce code view.
+    # Switch to the URL input view.
     $("#header_text").html("Enter the URLs for your data:")
     $("#reduce_div").slideUp 300, () ->
       $("#url_div").slideDown(300)
 
   $('#save_urls').click () ->
     urls = (s.trim() for s in $("#url_area").val().split(','))
-    # TODO save the urls and star the job
+    client.save_urls(urls)
 
     $("#header_text").html("Job Running!")
     $("#url_div").slideUp 300

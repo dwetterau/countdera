@@ -24,4 +24,17 @@ class Client
     other = firebase.WORKER_MESSAGE_REF.child(worker)
     other.push message, callback
 
+  save_attribute: (attribute, object) ->
+
+  save_map_code: (map_code) ->
+
+  save_reduce_code: (reduce_code) ->
+
+  save_urls: (urls) ->
+
+  start_job: () ->
+
+  finish_job: () ->
+
+
 module.exports = {Client}
