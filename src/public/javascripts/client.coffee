@@ -2,8 +2,8 @@
 
 module.exports =
   run: () ->
-    room_id = get_room_id_from_url()
-    client = new Client(room_id)
+    job_id = get_job_id_from_url()
+    client = new Client(job_id)
     client.init()
 
     setTimeout () ->
@@ -44,6 +44,6 @@ trim_code = (text) ->
   return lines.slice(1, lines.length - 1).join('\n')
 
 
-get_room_id_from_url = () ->
+get_job_id_from_url = () ->
   path = window.location.pathname
-  return path.slice(1, path.lastIndexOf('/'))
+  return path.substring(path.lastIndexOf('/') + 1)

@@ -2,4 +2,3 @@
 node_modules/
 bin/
 *.log
-src/public/javascripts/external/

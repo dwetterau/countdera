@@ -1,22 +1,22 @@
 express = require 'express'
 router = express.Router()
-room_manager = require '../serverjs/room_manager'
+job_manager = require '../serverjs/job_manager'
 
 # GET home page
-router.get '/', (req, res) ->
+router.get '/client', (req, res) ->
   # This should generate a room_id that other users will use to connect.
-  room_id = room_manager.get_room_id()
-  res.redirect room_id + '/client'
+  job_id = job_manager.get_job_id()
+  res.redirect '/client/' + job_id
 
-router.get '/worker', (req, res) ->
+router.get '/', (req, res) ->
   res.render 'welcome'
 
-router.get '/:room_id/client', (req, res) ->
+router.get '/client/:job_id', (req, res) ->
   # If the master is the first to connect, no other connections should be
   # allowed (there should only be one master).
-  room_id = req.params.room_id
+  job_id = req.params.job_id
   res.render 'client',
-    {room_id}
+    {job_id}
 
 router.get '/worker', (req, res) ->
   res.render 'worker'

@@ -3,10 +3,10 @@ constants = require '../constants'
 Q = require 'q'
 
 module.exports =
-  get_room_id: () ->
-    room_name = firebase.ROOT_REF.child(constants.FIREBASE_ROOM_IDS).push {'in_use': false}
-    console.log room_name.name()
-    return room_name.name()
+  get_job_id: () ->
+    job_name = firebase.ROOT_REF.child(constants.FIREBASE_JOB_IDS).push {'in_use': false}
+    console.log job_name.name()
+    return job_name.name()
 
   get_active_clients: () ->
     now = new Date().getTime()
