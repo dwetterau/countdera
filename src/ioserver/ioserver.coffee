@@ -30,12 +30,15 @@ class JobSet
   finishReducer: (reducerid) ->
     @reducers[reducerid].finished = true
     @numReducers++
+    console.log(@numReducers + " out of " + @totalReducers)
     if (@numReducers == @totalReducers)
       jobMap = @combineToJobMap()
       str = @serializeJobMap(jobMap)
       @saveToFile(str)
       firebase_db.JOB_STATUS_REF.child(@job).child('output_url')
       .set(constants.OUTPUT_DIR + @job)
+      return true
+    return false
 
   combineToJobMap: () ->
     jobMap = {}
@@ -65,7 +68,9 @@ class JobSet
     fs.writeFileSync(constants.TOP_DIR + constants.OUTPUT_DIR + @job, str)
 
 test = (fb) ->
-  fb.push({name: "START_JOB", job: 7, numReducers: 1})
+  fb.push({name: "START_JOB", job: 7, numReducers: 3})
+  fb.push({name: "START_REDUCER_OUTPUT", job: 7, reducer: 3})
+  fb.push({name: "STOP_REDUCER_OUTPUT", job: 7, reducer: 3})
   fb.push({name: "START_REDUCER_OUTPUT", job: 7, reducer: 1})
   fb.push({
     name: "REDUCER_OUTPUT",
@@ -103,7 +108,6 @@ main = () ->
 
   fb.on("child_added", newMessage = (snapshot) ->
     message = snapshot.val()
-    console.log message
     switch message.name
       when "START_JOB" then (
         if (not (currentJobs[message.job] == -1))
@@ -121,8 +125,8 @@ main = () ->
       )
       when "STOP_REDUCER_OUTPUT" then (
         if (not((currentJobs[message.job] == null or currentJobs[message.job] == -1)))
-          currentJobs[message.job].finishReducer(message.reducer)
-          currentJobs[message.job] = -1
+          if (currentJobs[message.job].finishReducer(message.reducer))
+            currentJobs[message.job] = -1
       )
     fb.child(snapshot.name()).remove()
   )
