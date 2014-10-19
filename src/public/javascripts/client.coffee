@@ -39,7 +39,7 @@ add_handlers = (client) ->
 
   firebase.JOB_STATUS_REF.child(client._id).on 'child_added', (snapshot) ->
     if snapshot.name() == 'output_url'
-      url = window.location.hostname + snapshot.val()
+      url = 'http://' + window.location.hostname + '/' + snapshot.val()
       $('#output_url_div').html('<a href="' + url + '">Click to download output!</a>')
       client.finish_job()
 
