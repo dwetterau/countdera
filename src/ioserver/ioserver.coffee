@@ -34,6 +34,8 @@ class JobSet
       jobMap = @combineToJobMap()
       str = @serializeJobMap(jobMap)
       @saveToFile(str)
+      firebase_db.JOB_STATUS_REF.child(@job).child('output_url')
+      .set(constants.SAVED_JOB_LOCATION + @job)
 
   combineToJobMap: () ->
     jobMap = {}
@@ -59,8 +61,39 @@ class JobSet
     return str
 
   saveToFile: (str) ->
-    console.log("writing a file")
+    console.log("Finished Job " + @job)
     fs.writeFileSync(constants.SAVED_JOB_LOCATION + @job, str)
+
+test = (fb) ->
+  fb.push({name: "START_JOB", job: 7, numReducers: 1})
+  fb.push({name: "START_REDUCER_OUTPUT", job: 7, reducer: 1})
+  fb.push({
+    name: "REDUCER_OUTPUT",
+    job: 7,
+    reducer: 1,
+    key: "Josh",
+    lines: ["d", "e", "f"]})
+  fb.push({name: "START_REDUCER_OUTPUT", job: 7, reducer: 2})
+  fb.push({
+    name: "REDUCER_OUTPUT",
+    job: 7,
+    reducer: 2,
+    key: "Dan",
+    lines: ["f", "g", "h"]})
+  fb.push({
+    name: "REDUCER_OUTPUT",
+    job: 7,
+    reducer: 2,
+    key: "John",
+    lines: ["x", "y", "z"]})
+  fb.push({
+    name: "REDUCER_OUTPUT",
+    job: 7,
+    reducer: 1,
+    key: "David",
+    lines: ["a", "b", "c"]})
+  fb.push({name: "STOP_REDUCER_OUTPUT", job: 7, reducer: 2})
+  fb.push({name: "STOP_REDUCER_OUTPUT", job: 7, reducer: 1})
 
 main = () ->
   fb = firebase_db.IO_SERVER_MESSAGE_REF
@@ -70,20 +103,17 @@ main = () ->
   fb.on("child_added", newMessage = (snapshot) ->
     message = snapshot.val()
     switch message.name
-      when "START_JOB" then currentJobs[message.job] = new JobSet(message.job, message.numReducers)
-      when "START_REDUCER_OUTPUT" then currentJobs[message.job].addReducer(message.reducer)
-      when "REDUCER_OUTPUT" then currentJobs[message.job].addOutput(message.reducer, message.key, message.lines)
-      when "STOP_REDUCER_OUTPUT" then currentJobs[message.job].finishReducer(message.reducer)
+      when "START_JOB" then currentJobs[message.job] =
+        new JobSet(message.job, message.numReducers)
+      when "START_REDUCER_OUTPUT" then (
+        currentJobs[message.job].addReducer(message.reducer))
+      when "REDUCER_OUTPUT" then (
+        currentJobs[message.job].addOutput(message.reducer, message.key, message.lines))
+      when "STOP_REDUCER_OUTPUT" then (
+        currentJobs[message.job].finishReducer(message.reducer))
     fb.child(snapshot.name()).remove()
   )
+  #test(fb)
 
-  fb.push({name: "START_REDUCER_OUTPUT", job: 7, reducer: 1})
-  fb.push({name: "REDUCER_OUTPUT", job: 7, reducer: 1, key: "Josh", lines: ["d", "e", "f"]})
-  fb.push({name: "START_REDUCER_OUTPUT", job: 7, reducer: 2})
-  fb.push({name: "REDUCER_OUTPUT", job: 7, reducer: 2, key: "Dan", lines: ["f", "g", "h"]})
-  fb.push({name: "REDUCER_OUTPUT", job: 7, reducer: 2, key: "John", lines: ["x", "y", "z"]})
-  fb.push({name: "REDUCER_OUTPUT", job: 7, reducer: 1, key: "David", lines: ["a", "b", "c"]})
-  fb.push({name: "STOP_REDUCER_OUTPUT", job: 7, reducer: 2})
-  fb.push({name: "STOP_REDUCER_OUTPUT", job: 7, reducer: 1})
 
 main()
