@@ -38,6 +38,6 @@ module.exports =
     worker = new Worker(stateMapper)
     setTimeout () ->
       $('#a').click () ->
-        $('#a').hide()
+        $('#a').slideUp()
         worker.init()
     , 100
