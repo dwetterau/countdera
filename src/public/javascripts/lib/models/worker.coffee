@@ -126,15 +126,22 @@ class Worker
   send_map_data: (reduce_node_list) ->
     num_nodes = reduce_node_list.nodes.length
     for client in reduce_node_list.nodes
-      send_to_friend clients, {name : 'START_MAP_OUTPUT ', index: @_id}, null
+      @send_to_friend client,
+        name: 'START_MAP_OUTPUT'
+        index: @index
 
     for tuple in @mappings
       hash = hashval(tuple[0])
       to_send_client = reduce_node_list[hash % num_nodes]
-      send_to_friend to_send_client, {name : 'MAP_OUTPUT ', index: @_id, key : tuple}, null
+      @send_to_friend to_send_client,
+        name: 'MAP_OUTPUT'
+        index: @index
+        key: object
 
     for client in reduce_node_list.nodes
-      send_to_friend clients, {name : 'END_MAP_OUTPUT ', index: @_id}, null
+      @send_to_friend client,
+        name: 'END_MAP_OUTPUT'
+        index: @index
 
 
   start_reduce: (start_reduce_message) ->
@@ -172,10 +179,10 @@ class Worker
     chr = null
 
     if s.length == 0
-        return hash;
+      return hash;
     for i in s.length
       chr   = this.charCodeAt(i)
-      hash  = ((hash << 5) - hash) + chr;
+      hash  = ((hash << 5) - hash) + chr
       hash |= 0
 
     return hash;
