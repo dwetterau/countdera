@@ -140,7 +140,7 @@ class Worker
       @send_to_friend to_send_client,
         name: 'MAP_OUTPUT'
         index: @index
-        key: object
+        key: tuple
 
     for client in reduce_node_list.nodes
       @send_to_friend client,
@@ -153,53 +153,64 @@ class Worker
     @job_id = start_reduce_message.job_id
     @number_of_mappers = start_reduce_message.number_of_mappers
     @reduce_data = {}
-    @mapper_done = (false for i in @number_of_mappers)
+    @num_done = 0
+    @mapper_done = (false for _ in @number_of_mappers)
 
     @get_reduce_code()
 
   get_reduce_code: () ->
-    #todo something with job ids?
-
-    @reduce_code = "pass"
-
+    deferred = q.defer()
+    firebase.JOB_STATUS_REF.child(@job_id).child('reduce_code').once 'value', (snapshot) =>
+      @reduce_code = snapshot.val()
+      deferred.resolve()
+    return deferred.promise
 
   add_data_src: (map_data_msg) ->
-    if(@mapper_done[map_data_msg.index])
+    if @mapper_done[map_data_msg.index]
       return
-    else
-      @reduce_data[map_data_msg.index] = []
+    @reduce_data[map_data_msg.index] = []
 
   close_data_src: (map_data_msg) ->
+    if not @mapper_done[map_data_msg.index]
+      @num_done++
     @mapper_done[map_data_msg.index] = true
 
+    if @num_done == @number_of_mappers
+      @do_reduce()
+
   add_map_output: (map_data_msg) ->
-    @reduce_data[map_data_msg.index].append(map_data_msg.key)
+    if @mapper_done[map_data_msg.index]
+      return
+    @reduce_data[map_data_msg.index].push(map_data_msg.key)
 
-  do_reduce: (themsg_by_grandmaster_flash_and_the_furious_five) ->
+  do_reduce: () ->
     collected_data = {}
-    for list in reduce_data
+    for index, list of @reduce_data
       for item in list
-        if item[0] not in collected_data_data.keys
+        if item[0] not of collected_data
           collected_data[item[0]] = []
-        for value in item[1]
-          collected_data[item[0]].append(value)
-
-    reduce = (key, list_of_objects) =>
-      eval(@reduce_code)
+        collected_data[item[0]].push(item[1])
 
     data_for_jimmy = {}
-    for key in collected_data.keyset
-      data_for_jimmy[key] = []
-      emit = (line) =>
+    reduce = (key, map_output_list) =>
+      emit = (line) ->
+        if key not of data_for_jimmy
+          data_for_jimmy[key] = []
         data_for_jimmy[key].push(line)
-      reduce(key, collected_data[key])
+      eval(@reduce_code)
 
-    finish_reduce
+    console.log "running reduce code:"
+    console.log @reduce_code
+    for key, list of collected_data
+      reduce(key, list)
+
+    @finish_reduce(data_for_jimmy)
 
 
-  finish_reduce: () ->
+  finish_reduce: (data_for_jimmy) ->
     #todo hi-5 the backend with some reduce judo
-
+    console.log "Reduce finished!"
+    console.log data_for_jimmy
 
   hashval: (s) ->
     hash = 0

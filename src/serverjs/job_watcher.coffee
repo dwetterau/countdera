@@ -33,9 +33,11 @@ class JobWatcher
       snapshot.forEach (child) ->
         @urls.push child.name()
 
-
   startIOServer: () ->
-    firebase.IO_SERVER_MESSAGE_REF.push { name: 'START_JOB', numReducers: @urls.length, job: @jobid }
+    firebase.IO_SERVER_MESSAGE_REF.push
+      name: 'START_JOB',
+      numReducers: @urls.length,
+      job: @jobid
 
   get_active_clients: (num) ->
     now = new Date().getTime()
@@ -162,7 +164,8 @@ class JobWatcher
     failed_reducers = []
     now = new Date().now()
     for reducer in @reducers
-      if now - @clientMap[reducer].last_update > 4 * constants.HEARTBEAT_INTERVAL and not @reduceStatus[reducer].done
+      if now - @clientMap[reducer].last_update > 4 * constants.HEARTBEAT_INTERVAL and (
+        not @reduceStatus[reducer].done)
         #dis fucker dead
         failed_reducers.push reducer
 
