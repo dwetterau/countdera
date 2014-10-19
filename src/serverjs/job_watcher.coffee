@@ -12,6 +12,8 @@ class JobWatcher
     @reduceStatus = {}
     @initFromFirebase()
 
+    @doneMappers = []
+
 
   initFromFirebase: () ->
     # keep it ALL in memory because reasons
@@ -50,16 +52,19 @@ class JobWatcher
 
     switch @status
       when "STARTING"
-        @start()
+        @allocateMappers()
+        @startMap()
       when "MAPPING_STARTED"
         @checkMappers()
       when "MAPPING_ENDING_FIRST"
         @allocateReducers()
+        @finishMappers()
         @status = "MAPPING_ENDING"
       when "MAPPING_ENDING"
-        @checkMappers
+        @checkMappers()
+        @finishMappers()
       when "REDUCE_START"
-        # TODO init stuff
+        @startReduce()
         @status = "REDUCE_STARTED"
       when "REDUCE_STARTED"
         @checkMappers()  # so that if a reducer fails we have the data to send it?
@@ -71,12 +76,25 @@ class JobWatcher
       setTimeout () =>
         @loop()
       , 1
+    else
+      @finish()
 
+  allocateMappers: () ->
+    numMappers = @urls.length
+    @mappers = @get_active_clients numMappers
+    index = 0
+    for child_id, child in @mappers
+      @mapStatus[child_id] = { done: false, index: index }
+      index++
+    @numMappersLeft = numMappers
 
-  start: () ->
-    @allocateMappers()
+  startMap: () ->
+    index = 0
     for child_id of @mappers
-      @send child_id, { name: 'MAP_START', job_id: @jobid, url: @mapStatus[child_id].url }
+      startMapper child_id, index++
+
+  startMapper: (mapper, index) ->
+    @send mapper, { name: 'MAP_START', index: index, job_id: @jobid, url: @urls[index]}
 
   checkMappers: () ->
     # read through messages to see if anyone finished, if all finished, or if anyone is dead
@@ -85,6 +103,7 @@ class JobWatcher
       if message.name is 'MAP_DONE'
         node = message.worker_id
         @mapStatus[node].done = true
+        @doneMappers.push node
         @numMappersLeft--
         delete @queue[message_id]
         if @status is "MAPPING_STARTED"
@@ -93,7 +112,7 @@ class JobWatcher
     toRetry = []
     for worker_id of @mappers
       now = new Date().now()
-      if (now - @clientMap[worker_id].last_update > 4 * constants.HEARTBEAT_INTERVAL)
+      if now - @clientMap[worker_id].last_update > 4 * constants.HEARTBEAT_INTERVAL
         # he's dead jim
         toRetry.push worker_id
 
@@ -103,39 +122,95 @@ class JobWatcher
     if @numMappersLeft == 0 and @status is not "REDUCE_STARTED"
       @status = "REDUCE_START"
 
-  checkReducers: () ->
-
-  allocateMappers: () ->
-    numMappers = @urls.length
-    @mappers = @get_active_clients numMappers
-    index = 0
-    for child_id, child in @mappers
-      @mapStatus[child_id] = { done: false, url: @urls[index++] }
-    @numMappersLeft = numMappers
-
   allocateReducers: () ->
-    numReducers = @urls.length
+    @numReducers = @urls.length
     @reducers = @get_active_clients numReducers
+    index = 0
     for child_id of @reducers
-      @reduceStatus[child_id] = { done: false }
+      @reduceStatus[child_id] = { done: false, index: index++ }
     @numReducersLeft = numReducers
 
+
+  finishMappers: () ->
+    for mapper in @doneMappers
+      @sendReduceNodes mapper
+    @doneMappers = []
+
+  startReduce: () ->
+    for reducer of @reducers
+      @startReducer reducer
+
+  startReducer: (reducer) ->
+    @send reducer { name: 'START_REDUCE', nummappers: @mappers.length }
+
+  checkReducers: () ->
+    # see if anyone finished
+    for message_id, message of @queue
+      if message.name is 'REDUCE_DONE'
+        node = message.worker_id
+        @reduceStatus[node].done = true
+        @numReducersLeft--
+        delete @queue[message_id]
+
+    # see if anyone failed
+    failed_reducers = []
+    now = new Date().now()
+    for reducer in @reducers
+      if now - @clientMap[reducer].last_update > 4 * constants.HEARTBEAT_INTERVAL
+        #dis fucker dead
+        failed_reducers.push reducer
+
+    if reducer.length > 0
+      @retryReducers failed_reducers
+    else if @numReducersLeft == 0
+      state = "DONE"
+
+
+  sendReduceNodes: (mapper) ->
+    send mapper { name: 'REDUCE_NODES', reducers: @reducers }
+
+  # whether mapper fails before or after it finishes, it needs to be alive the whole time,
+  # so that it can send the data to failed reducers
   retryMap: (failed_id) ->
     new_node = get_active_clients(1)[0]
-    url = @mapStatus[failed_id].url
-    @send new_node, { name: 'MAP_START', job_id: @jobid, url: url}
-    @mappers[new_node] = { done: false, url: url}
+    index = @mapStatus[failed_id].index
+    startMapper new_node, index
+    @mappers[index] = new_node
+    @mapStatus[new_node] = { done: false, index: index}
     if @mapStatus[failed_id].done
       @numMappersLeft++
 
     delete @mappers[failed_id]
+    delete @mapStatus[failed_id]
 
 
+  retryReducers: (failed_reducers) ->
+    for failed_reducer in failed_reducers
+      @retryReduce failed_reducer
+
+    # all done mappers need to resend
+    for mapper_id, mapper_status of @mapStatus
+      if mapper_status.done
+        @doneMappers.push mapper_id
+
+    # have all done mappers re-send the data
+    @finishMappers()
+
+
+  #don't call if reducer has already finished, data is written to firebase
   retryReduce: (failed_id) ->
+    new_node = get_active_clients(1)[0]
+    index = @reduceStatus[failed_id].index
+
+    @reducers[index] = new_node
+    @reduceStatus[new_node] = { done: false, index: index }
 
   # abstraction
-  send: (node, message) ->
+  send: (node, jsonMessage) ->
     #todo add to node's firebase message queue
 
+
+  finish: () ->
+    # TODO? does this need to exist?
 
 module.exports = {JobWatcher}
