@@ -241,7 +241,7 @@ class Worker
     @number_of_mappers = start_reduce_message.number_of_mappers
     @reduce_data = {}
     @num_done = 0
-    @mapper_done
+    @mapper_done = null
     @_status.state = 'IDLE'
 
   hashval: (s) ->
