@@ -46,6 +46,7 @@ class Worker
 
   process_message: (message) ->
     message_type = message.name
+    console.log "got a message", message_type
     #todo we know the states so check if receiving a message is sane
     switch message_type
       when "MAP_START" then @start_map(message)

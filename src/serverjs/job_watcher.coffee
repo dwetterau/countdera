@@ -41,7 +41,8 @@ class JobWatcher
     active_clients = []
     for child_id, child of @clientMap
       # Allow some time for RTT + delay
-      if now - child.last_update < 4 * constants.HEARTBEAT_INTERVAL and child.status.state is 'IDLE'
+      if now - child.last_update < 15 * constants.HEARTBEAT_INTERVAL and (
+        child.status.state is 'IDLE')
         active_clients.push child_id
       if active_clients.length == num
         break
@@ -129,7 +130,8 @@ class JobWatcher
     toRetry = []
     for worker_id in @mappers
       now = new Date().getTime()
-      if now - @clientMap[worker_id].last_update > 4 * constants.HEARTBEAT_INTERVAL
+      if now - @clientMap[worker_id].last_update > 15 * constants.HEARTBEAT_INTERVAL
+        console.log worker_id
         # he's dead jim
         toRetry.push worker_id
 
@@ -180,7 +182,7 @@ class JobWatcher
     failed_reducers = []
     now = new Date().getTime()
     for reducer in @reducers
-      if now - @clientMap[reducer].last_update > 4 * constants.HEARTBEAT_INTERVAL and (
+      if now - @clientMap[reducer].last_update > 15 * constants.HEARTBEAT_INTERVAL and (
         not @reduceStatus[reducer].done)
         #dis fucker dead
         failed_reducers.push reducer
@@ -198,6 +200,8 @@ class JobWatcher
   # so that it can send the data to failed reducers
   retryMap: (failed_id) ->
     new_node = @get_active_clients(1)[0]
+    if not new_node?
+      return
     index = @mapStatus[failed_id].index
     @startMapper new_node, index
     @mappers[index] = new_node
@@ -226,6 +230,8 @@ class JobWatcher
   #don't call if reducer has already finished, data is written to firebase
   retryReduce: (failed_id) ->
     new_node = @get_active_clients(1)[0]
+    if not new_node?
+      return
     index = @reduceStatus[failed_id].index
 
     @reducers[index] = new_node
@@ -235,6 +241,8 @@ class JobWatcher
 
   # abstraction
   send: (node, jsonMessage) ->
+    console.log "sending message to", node
+    console.log "jsonMessage", jsonMessage
     worker = firebase.WORKER_MESSAGE_REF.child(node)
     worker.push jsonMessage, ((error) ->
       if error?
