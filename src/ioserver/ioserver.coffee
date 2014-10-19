@@ -93,6 +93,7 @@ test = (fb) ->
     key: "David",
     lines: ["a", "b", "c"]})
   fb.push({name: "STOP_REDUCER_OUTPUT", job: 7, reducer: 2})
+  fb.push({name: "START_REDUCER_OUTPUT", job: 7, reducer: 2})
   fb.push({name: "STOP_REDUCER_OUTPUT", job: 7, reducer: 1})
 
 main = () ->
@@ -103,14 +104,25 @@ main = () ->
   fb.on("child_added", newMessage = (snapshot) ->
     message = snapshot.val()
     switch message.name
-      when "START_JOB" then currentJobs[message.job] =
-        new JobSet(message.job, message.numReducers)
+      when "START_JOB" then (
+        if (not (currentJobs[message.job] == -1))
+          currentJobs[message.job] =
+          new JobSet(message.job, message.numReducers)
+      )
       when "START_REDUCER_OUTPUT" then (
-        currentJobs[message.job].addReducer(message.reducer))
+        if (not((currentJobs[message.job] == null or currentJobs[message.job] == -1)))
+          currentJobs[message.job].addReducer(message.reducer)
+      )
       when "REDUCER_OUTPUT" then (
-        currentJobs[message.job].addOutput(message.reducer, message.key, message.lines))
+        if (not((currentJobs[message.job] == null or currentJobs[message.job] == -1)))
+          currentJobs[message.job]
+          .addOutput(message.reducer, message.key, message.lines)
+      )
       when "STOP_REDUCER_OUTPUT" then (
-        currentJobs[message.job].finishReducer(message.reducer))
+        if (not((currentJobs[message.job] == null or currentJobs[message.job] == -1)))
+          currentJobs[message.job].finishReducer(message.reducer)
+          currentJobs[message.job] = -1
+      )
     fb.child(snapshot.name()).remove()
   )
   #test(fb)

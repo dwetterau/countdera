@@ -5,11 +5,11 @@ set -e
 
 echo "Removing existing build..."
 rm -rf ./bin && mkdir ./bin
-rm -rf /countdera/output && mkdir /countdera && mkdir /countdera/output
 cp -r ./src/public ./bin/public
 cp -r ./src/views ./bin/views
 cp -r ./src/tests ./bin/tests
 mkdir ./bin/routes
+mkdir -p /countdera/output
 
 # Compile all coffeescript to js
 echo "Compiling Coffeescript to JS..."
