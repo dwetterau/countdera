@@ -48,10 +48,17 @@ class Worker
   process_message: (message) ->
     console.log "Got a message!", message
     message_type = message.name
+    #todo we know the states so check if receiving a message is sane
     switch(message_type)
       when "MAP_START" then @start_map(message)
-      when "JOB_DONE" then @finish_job(message)
       when "REDUCE_NODES" then @send_map_data(message)
+      when "JOB_DONE" then @finish_job(message)
+      when "START_REDUCE" then @start_reduce(message)
+      when "START_MAP_OUTPUT" then @add_data_src(message) #todo
+      when "MAP_OUTPUT" then @add_map_output(message)
+      when "END_MAP_OUTPUT" then @close_data_src(message) #todo
+      when "REDUCE_DONE" then @finish_reduce(message)
+
 
   listen: () ->
     message_ref = firebase.WORKER_MESSAGE_REF.child(@_id)
@@ -77,6 +84,7 @@ class Worker
   start_map: (map_start_message) ->
     @status.state = 'MAPPER'
     @job_id = map_start_message.job_id
+    @index = map_start_message.index
 
     get_data(map_start_message.url).then(() ->
       return get_mapping_code()
@@ -117,23 +125,47 @@ class Worker
 
   send_map_data: (reduce_node_list) ->
     num_nodes = reduce_node_list.nodes.length
-    for clients in reduce_node_list.nodes
-      send_to_friend to_send_client {name : 'START_MAP_OUTPUT ', id: @_id} null
+    for client in reduce_node_list.nodes
+      send_to_friend clients, {name : 'START_MAP_OUTPUT ', index: @_id}, null
 
-    for [key, object] in @mappings
-      hash = hashval(key)
+    for tuple in @mappings
+      hash = hashval(tuple[0])
       to_send_client = reduce_node_list[hash % num_nodes]
-      send_to_friend to_send_client {name : 'MAP_OUTPUT ', id: @_id, key : object} null
+      send_to_friend to_send_client, {name : 'MAP_OUTPUT ', index: @_id, key : tuple}, null
 
-    for clients in reduce_node_list.nodes
-      send_to_friend to_send_client {name : 'END_MAP_OUTPUT ', id: @_id} null
+    for client in reduce_node_list.nodes
+      send_to_friend clients, {name : 'END_MAP_OUTPUT ', index: @_id}, null
 
 
   start_reduce: (start_reduce_message) ->
+    @status.state = 'REDUCER'
+    @job_id = start_reduce_message.job_id
+    @number_of_mappers = start_reduce_message.number_of_mappers
+    @reduce_data = {}
+    @mapper_done = []
+    for i in @number_of_mappers
+      mapper_done[i] = false
 
-  add_map_output: (map_output_message) ->
+
+
+  add_data_src: (map_data_msg) ->
+    if(@mapper_done[map_data_msg.index])
+      return
+    else
+      @reduce_data[map_data_msg.index] = []
+
+  close_data_src: (map_data_msg) ->
+    @mapper_done[map_data_msg.index] = true
+
+  add_map_output: (map_data_msg) ->
+    @reduce_data[map_data_msg.index].append(map_data_msg.key)
+
+  do_reduce: (themsg_by_grandmaster_flash_and_the_furious_five) ->
+
+
 
   finish_reduce: () ->
+
 
   hashval (s) =>
     hash = 0
