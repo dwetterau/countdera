@@ -4,12 +4,13 @@ constants = require '../../../../constants.coffee'
 q = require 'q'
 
 class Worker
-  constructor: () ->
+  constructor: (statecallback) ->
     @_last_update = new Date().getTime()
     @_connections = {}
     @_status = {
       state: 'IDLE'
     }
+    @statecallback = statecallback
 
   init: () ->
     @get_id()
@@ -63,7 +64,7 @@ class Worker
     else if message_type == "REDUCE_DONE"
       @finish_reduce(message)
     else
-      throw new Error("Unknown message!");
+      throw new Error("Unknown message!")
 
 
   listen: () ->
@@ -89,6 +90,7 @@ class Worker
   start_map: (map_start_message) ->
     @_status.state = 'MAPPER'
     @heartbeat()
+    @statecallback(@_status.state)
     @job_id = map_start_message.job_id
     @index = map_start_message.index
 
@@ -99,6 +101,8 @@ class Worker
       @map_done()
 
   get_data: (url) ->
+    @_status.state = "DOWNLOADING_MAPPING_DATA"
+    @statecallback(@_status.state)
     deferred = q.defer()
     @data = ''
     $.get url, (data) =>
@@ -108,6 +112,8 @@ class Worker
     return deferred.promise
 
   get_mapping_code: () ->
+    @_status.state = "DOWNLOADING_MAPPING_CODE"
+    @statecallback(@_status.state)
     deferred = q.defer()
     firebase.JOB_STATUS_REF.child(@job_id).child('map_code').once 'value', (snapshot) =>
       @map_code = snapshot.val()
@@ -115,6 +121,8 @@ class Worker
     return deferred.promise
 
   run_map_job: () ->
+    @_status.state = "MAPPING"
+    @statecallback(@_status.state)
     @mappings = []
     emit = (key, object) =>
       @mappings.push [key, object]
@@ -130,10 +138,13 @@ class Worker
   map_done: () ->
     msg = {name: "MAPPER_DONE", job_id: @job_id, id: @_id}
     @send_to_server msg, () =>
-      @_status.state = 'MAPPER_DONE'
-      @heartbeat
+      @_status.state = 'MAPPING_DONE'
+      @heartbeat()
+      @statecallback(@_status.state)
 
   send_map_data: (reduce_node_list) ->
+    @_status.state = "SENDING_MAPPED_RESULTS"
+    @statecallback(@_status.state)
     num_nodes = reduce_node_list.nodes.length
     for client in reduce_node_list.nodes
       @send_to_friend client,
@@ -157,6 +168,7 @@ class Worker
   start_reduce: (start_reduce_message) ->
     @_status.state = 'REDUCER'
     @heartbeat()
+    @statecallback(@_status.state)
     @job_id = start_reduce_message.job_id
     @index = start_reduce_message.index
     @number_of_mappers = start_reduce_message.number_of_mappers
@@ -165,6 +177,8 @@ class Worker
     @mapper_done = (false for _ in @number_of_mappers)
 
   get_reduce_code: () ->
+    @_status.state = "DOWNLOADING_REDUCE_CODE"
+    @statecallback(@_status.state)
     deferred = q.defer()
     firebase.JOB_STATUS_REF.child(@job_id).child('reduce_code').once 'value', (snapshot) =>
       @reduce_code = snapshot.val()
@@ -172,6 +186,8 @@ class Worker
     return deferred.promise
 
   add_data_src: (map_data_msg) ->
+    @_status.state = "RECEIVING_REDUCE_DATA"
+    @statecallback(@_status.state)
     if @mapper_done[map_data_msg.index]
       return
     @reduce_data[map_data_msg.index] = []
@@ -191,6 +207,8 @@ class Worker
     @reduce_data[map_data_msg.index].push(map_data_msg.key)
 
   do_reduce: () ->
+    @_status.state = "REDUCING"
+    @statecallback(@_status.state)
     collected_data = {}
     for index, list of @reduce_data
       for item in list
@@ -214,6 +232,8 @@ class Worker
 
   finish_reduce: (data_for_jimmy) ->
     # Start message to Jimmy
+    @_status.state = "SENDING_TO_IO_SERVER"
+    @statecallback(@_status.state)
     firebase.IO_SERVER_MESSAGE_REF.push
       name: "START_REDUCER_OUTPUT",
       reducer: @index,
@@ -249,6 +269,7 @@ class Worker
     @mapper_done = null
     @_status.state = 'IDLE'
     @heartbeat()
+    @statecallback(@_status.state)
 
   hashval: (s) ->
     hash = 0
@@ -262,5 +283,8 @@ class Worker
       hash |= 0
 
     return hash;
+
+  getState: () ->
+    return @_status.state
 
 module.exports = {Worker}
