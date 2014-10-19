@@ -34,7 +34,7 @@ add_handlers = (client) ->
     urls = (s.trim() for s in $("#url_area").val().split(','))
     client.save_urls(urls)
 
-    $("#header_text").html("Job Running!")
+    $("#header_text").html("Job Running...")
     $("#url_div").slideUp 300
 
   firebase.JOB_STATUS_REF.child(client._id).on 'child_added', (snapshot) ->
@@ -42,6 +42,7 @@ add_handlers = (client) ->
       url = 'http://' + window.location.hostname + '/' + snapshot.val()
       $('#output_url_div').html('<a href="' + url + '">Click to download output!</a>')
       client.finish_job()
+    $("#header_text").html("Job Finished!")
 
 trim_code = (text) ->
   lines = text.trim().split "\n"
