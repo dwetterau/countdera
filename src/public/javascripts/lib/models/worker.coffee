@@ -151,6 +151,7 @@ class Worker
   start_reduce: (start_reduce_message) ->
     @_status.state = 'REDUCER'
     @job_id = start_reduce_message.job_id
+    @index = start_reduce_message.index
     @number_of_mappers = start_reduce_message.number_of_mappers
     @reduce_data = {}
     @num_done = 0
@@ -208,9 +209,30 @@ class Worker
 
 
   finish_reduce: (data_for_jimmy) ->
-    #todo hi-5 the backend with some reduce judo
-    console.log "Reduce finished!"
-    console.log data_for_jimmy
+    # Start message to Jimmy
+    firebase.IO_SERVER_MESSAGE_REF.push
+      name: "START_REDUCER_OUTPUT",
+      reducer: @index,
+      job: @job_id
+
+    for key, list of data_for_jimmy
+      firebase.IO_SERVER_MESSAGE_REF.push
+        name: "REDUCER_OUTPUT"
+        reducer: @index
+        key: key
+        lines: list
+
+    firebase.IO_SERVER_MESSAGE_REF.push
+      name: "START_REDUCER_OUTPUT",
+      reducer: @index,
+      job: @job_id
+
+    @clean_reduce
+
+    @send_to_server
+      name: "REDUCE_DONE"
+      index: @index
+      job_id: @job_id
 
   hashval: (s) ->
     hash = 0
