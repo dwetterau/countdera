@@ -15,6 +15,9 @@ class JobWatcher
     @startIOServer()
 
   initFromFirebase: (callback) ->
+    firebase.WORKER_STATUS_REF.on 'child_changed', (snapshot) =>
+      for name, value of snapshot.val()
+        @clientMap[name] = value
     # keep it ALL in memory because reasons
     @clientMap = {}
     firebase.WORKER_STATUS_REF.once 'value', (snapshot) =>
