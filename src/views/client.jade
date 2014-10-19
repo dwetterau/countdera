@@ -9,7 +9,7 @@ block content
                 div(class="form-group")
                     label(for="map_code_area" class="col-lg-2 control-label") Code:
                     div(class="col-lg-8")
-                        textarea(id="map_code_area" class="form-control" rows="15" cols="40").
+                        textarea(id="map_code_area" class="form-control" style="font-family:monospace" rows="15" cols="40").
                             function map(lines) { // Don't remove this line
 
                                 emit(key, serializable_object) // Example emitting map result
@@ -23,7 +23,7 @@ block content
                 div(class="form-group")
                     label(for="reduce_code_area" class="col-lg-2 control-label") Code:
                     div(class="col-lg-8")
-                        textarea(id="reduce_code_area" class="form-control" rows="15" cols="40").
+                        textarea(id="reduce_code_area" class="form-control" style="font-family:monospace" rows="15" cols="40").
                             function reduce(key, map_output_list) { // Don't remove this line
 
                                 emit(output_line) // Example emitting output
@@ -37,7 +37,7 @@ block content
                 div(class="form-group")
                     label(for="url_area" class="col-lg-2 control-label") Url:
                     div(class="col-lg-8")
-                        textarea(id="url_area" class="form-control" rows="15" cols="40").
+                        textarea(id="url_area" class="form-control" rows="5" cols="40").
                             data_url1, data_url2
                 div(class="form-group")
                     div(class="col-lg-10 col-lg-offset-2")
