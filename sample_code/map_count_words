@@ -1,0 +1,9 @@
+function map(lines) { // Don't remove this line
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var words = line.split(/\s+/);
+        for (var j = 0; j < words.length; j++) {
+            emit(words[j], 1);
+        }
+    }
+} // Don't remove this line

@@ -9,4 +9,3 @@ module.exports =
         $('#a').hide()
         worker.init()
     , 100
- 

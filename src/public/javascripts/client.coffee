@@ -1,5 +1,5 @@
 {Client} = require './lib/models/client.coffee'
-firebase = require '../firebase_client.coffee'
+firebase = require './lib/firebase_client.coffee'
 
 module.exports =
   run: () ->

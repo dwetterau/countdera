@@ -1,0 +1,7 @@
+function reduce(key, map_output_list) { // Don't remove this line
+    count = 0;
+    for (var i = 0; i < map_output_list.length; i++) {
+        count += map_output_list[i];
+    }
+    emit(count);
+} // Don't remove this line
