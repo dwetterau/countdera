@@ -99,10 +99,11 @@ test = (fb) ->
 main = () ->
   fb = firebase_db.IO_SERVER_MESSAGE_REF
   currentJobs = {}
-  currentJobs[7] = new JobSet(7, 2)
+  #currentJobs[7] = new JobSet(7, 2)
 
   fb.on("child_added", newMessage = (snapshot) ->
     message = snapshot.val()
+    console.log message
     switch message.name
       when "START_JOB" then (
         if (not (currentJobs[message.job] == -1))

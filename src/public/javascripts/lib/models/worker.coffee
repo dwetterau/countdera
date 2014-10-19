@@ -221,9 +221,10 @@ class Worker
         reducer: @index
         key: key
         lines: list
+        job: @job_id
 
     firebase.IO_SERVER_MESSAGE_REF.push
-      name: "START_REDUCER_OUTPUT",
+      name: "STOP_REDUCER_OUTPUT",
       reducer: @index,
       job: @job_id
 
@@ -237,8 +238,8 @@ class Worker
   clean_reduce: () ->
     @reduce_code = null
     @reduce_data = null
-    @job_id = start_reduce_message.job_id
-    @number_of_mappers = start_reduce_message.number_of_mappers
+    @job_id = null
+    @number_of_mappers = null
     @reduce_data = {}
     @num_done = 0
     @mapper_done = null
