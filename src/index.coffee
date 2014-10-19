@@ -9,6 +9,9 @@ bodyParser       = require('body-parser')
 
 indexRoute       = require('./routes/routes')
 
+firebase = require('./serverjs/firebase_db')
+{JobWatcher} = require('./serverjs/job_watcher')
+
 app = express()
 
 # view engine setup
@@ -49,6 +52,22 @@ else
       message: err.message
       error: {}
     res.render('error', errorObj)
+
+watchers = {}
+process_message = (message_id, message) ->
+  jobid = message.job_id
+  if jobid not of watchers
+    watchers[jobid] = new JobWatcher(jobid)
+    watchers[jobid].run()
+  watchers[jobid].addMessage(message_id, message)
+  if message.name == 'FINISH_JOB'
+    delete watchers[jobid]
+
+
+message_ref = firebase.SERVER_MESSAGE_REF
+message_ref.on 'child_added', (new_child) ->
+  process_message(new_child.name(), new_child.val())
+  message_ref.child(new_child.name()).remove()
 
 app.listen(config.get('PORT'))
 

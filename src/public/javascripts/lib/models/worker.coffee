@@ -123,7 +123,7 @@ class Worker
     map lines
 
   map_done: () ->
-    msg = {name: "MAPPER_DONE", id: @_id}
+    msg = {name: "MAPPER_DONE", job_id: @job_id, id: @_id}
     send_to_server msg, () =>
       @_status.state = 'MAPPER_DONE'
 
