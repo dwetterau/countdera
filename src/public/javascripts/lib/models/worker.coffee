@@ -1,7 +1,6 @@
 firebase = require '../firebase_client.coffee'
 config = require '../../../../config.coffee'
 constants = require '../../../../constants.coffee'
-http = require 'http'
 q = require 'q'
 
 class Worker
@@ -46,10 +45,9 @@ class Worker
     firebase.WORKER_STATUS_REF.update update_object, callback
 
   process_message: (message) ->
-    console.log "Got a message!", message
     message_type = message.name
     #todo we know the states so check if receiving a message is sane
-    switch(message_type)
+    switch message_type
       when "MAP_START" then @start_map(message)
       when "REDUCE_NODES" then @send_map_data(message)
       when "JOB_DONE" then @finish_job(message)
@@ -58,6 +56,8 @@ class Worker
       when "MAP_OUTPUT" then @add_map_output(message)
       when "END_MAP_OUTPUT" then @close_data_src(message) #todo
       when "REDUCE_DONE" then @finish_reduce(message)
+      else
+        throw new Error("Unknown message!");
 
 
   listen: () ->
@@ -79,33 +79,34 @@ class Worker
     @mappings = null
     @map_code  = null
     #todo invalidate everything
-    @status.state = 'IDLE'
+    @_status.state = 'IDLE'
 
   start_map: (map_start_message) ->
-    @status.state = 'MAPPER'
+    @_status.state = 'MAPPER'
     @job_id = map_start_message.job_id
     @index = map_start_message.index
 
-    get_data(map_start_message.url).then(() ->
-      return get_mapping_code()
-    ).then () ->
-      run_map_job()
+    @get_data(map_start_message.url).then(() =>
+      return @get_mapping_code()
+    ).then () =>
+      @run_map_job()
+      @map_done()
 
   get_data: (url) ->
     deferred = q.defer()
     @data = ''
-    http.get { host: url }, (res) ->
-      res.on 'data', (chunk) ->
-        @data += chunk.toString()
-      res.on 'end', () ->
-        deferred.resolve()
+    $.get url, (data) =>
+      @data = data
+      deferred.resolve()
 
     return deferred.promise
 
   get_mapping_code: () ->
-    #TODO figure out where this is
-
-    @map_code = "pass"
+    deferred = q.defer()
+    firebase.JOB_STATUS_REF.child(@job_id).child('map_code').once 'value', (snapshot) =>
+      @map_code = snapshot.val()
+      deferred.resolve()
+    return deferred.promise
 
   run_map_job: () ->
     @mappings = []
@@ -113,16 +114,18 @@ class Worker
     emit = (key, object) =>
       @mappings.push [key, object]
 
+    lines = @data.split('\n')
+    lines = (line for line in lines when line.length > 0)
+
     map = (lines) =>
       eval(@map_code)
 
-    map(@data.split('\n'))
-    #todo will new lines work? jagnew says hrm
+    map lines
 
   map_done: () ->
     msg = {name: "MAPPER_DONE", id: @_id}
-    send_to_server msg, () ->
-      @status.state = 'MAPPER_DONE'
+    send_to_server msg, () =>
+      @_status.state = 'MAPPER_DONE'
 
   send_map_data: (reduce_node_list) ->
     num_nodes = reduce_node_list.nodes.length
@@ -132,7 +135,7 @@ class Worker
         index: @index
 
     for tuple in @mappings
-      hash = hashval(tuple[0])
+      hash = @hashval(tuple[0])
       to_send_client = reduce_node_list[hash % num_nodes]
       @send_to_friend to_send_client,
         name: 'MAP_OUTPUT'
@@ -146,7 +149,7 @@ class Worker
 
 
   start_reduce: (start_reduce_message) ->
-    @status.state = 'REDUCER'
+    @_status.state = 'REDUCER'
     @job_id = start_reduce_message.job_id
     @number_of_mappers = start_reduce_message.number_of_mappers
     @reduce_data = {}
@@ -198,8 +201,7 @@ class Worker
     #todo hi-5 the backend with some reduce judo
 
 
-
-  hashval (s) =>
+  hashval: (s) ->
     hash = 0
     chr = null
 
@@ -211,6 +213,5 @@ class Worker
       hash |= 0
 
     return hash;
-
 
 module.exports = {Worker}

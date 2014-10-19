@@ -5,4 +5,7 @@ module.exports =
     temporary_worker = new Worker()
     temporary_worker.init()
 
-
+    temporary_worker.start_map
+      job_id: "-JZa4Sxsw0kFe6Jt5dOt"
+      index: 0
+      url: "http://dwett.com/data/file1.txt"
