@@ -100,7 +100,7 @@ class JobWatcher
     # read through messages to see if anyone finished, if all finished, or if anyone is dead
 
     for message_id, message of @queue
-      if message.name is 'MAP_DONE'
+      if message.name is 'MAPPER_DONE'
         node = message.worker_id
         @mapStatus[node].done = true
         @doneMappers.push node
@@ -141,7 +141,7 @@ class JobWatcher
       @startReducer reducer
 
   startReducer: (reducer) ->
-    @send reducer { name: 'START_REDUCE', nummappers: @mappers.length }
+    @send reducer { name: 'START_REDUCE', number_of_mappers: @mappers.length }
 
   checkReducers: () ->
     # see if anyone finished
@@ -156,7 +156,7 @@ class JobWatcher
     failed_reducers = []
     now = new Date().now()
     for reducer in @reducers
-      if now - @clientMap[reducer].last_update > 4 * constants.HEARTBEAT_INTERVAL
+      if now - @clientMap[reducer].last_update > 4 * constants.HEARTBEAT_INTERVAL and not @reduceStatus[reducer].done
         #dis fucker dead
         failed_reducers.push reducer
 
@@ -167,7 +167,7 @@ class JobWatcher
 
 
   sendReduceNodes: (mapper) ->
-    send mapper { name: 'REDUCE_NODES', reducers: @reducers }
+    send mapper { name: 'REDUCE_NODES', nodes: @reducers }
 
   # whether mapper fails before or after it finishes, it needs to be alive the whole time,
   # so that it can send the data to failed reducers
