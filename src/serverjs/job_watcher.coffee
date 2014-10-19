@@ -14,6 +14,8 @@ class JobWatcher
 
     @doneMappers = []
 
+    notifyIOServer()
+
 
   initFromFirebase: () ->
     # keep it ALL in memory because reasons
@@ -30,6 +32,10 @@ class JobWatcher
     firebase.JOB_STATUS_REF.child(@jobid).child('urls').once 'value', (snapshot) ->
       snapshot.forEach (child) ->
         @urls.push child.name()
+
+
+  startIOServer: () ->
+    firebase.IO_SERVER_MESSAGE_REF.push { name: 'START_JOB', numReducers: @urls.length, job: @jobid }
 
   get_active_clients: (num) ->
     now = new Date().getTime()
@@ -101,7 +107,7 @@ class JobWatcher
 
     for message_id, message of @queue
       if message.name is 'MAPPER_DONE'
-        node = message.worker_id
+        node = message.id
         @mapStatus[node].done = true
         @doneMappers.push node
         @numMappersLeft--
@@ -147,7 +153,7 @@ class JobWatcher
     # see if anyone finished
     for message_id, message of @queue
       if message.name is 'REDUCE_DONE'
-        node = message.worker_id
+        node = message.id
         @reduceStatus[node].done = true
         @numReducersLeft--
         delete @queue[message_id]
@@ -207,10 +213,13 @@ class JobWatcher
 
   # abstraction
   send: (node, jsonMessage) ->
-    #todo add to node's firebase message queue
+    worker = firebase.WORKER_MESSAGE_REF.child(node)
+    worker.push jsonMessage
 
 
   finish: () ->
-    # TODO? does this need to exist?
+    # tell the mappers they are done
+    for mapper in @mappers
+      send mapper { name: 'JOB_DONE' }
 
 module.exports = {JobWatcher}
