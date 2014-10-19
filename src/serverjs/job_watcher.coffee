@@ -46,7 +46,6 @@ class JobWatcher
 
   addMessage: (messageid, message) ->
     @queue[messageid] = message
-    console.log 'new message', messageid, message
 
   run: () ->
     @initFromFirebase () =>
@@ -61,7 +60,6 @@ class JobWatcher
         @status = 'MAPPING_STARTED'
       when "MAPPING_STARTED"
         @checkMappers()
-        @queue['asdf'] = {name: 'MAPPER_DONE', id: @mappers[0]}
       when "MAPPING_ENDING_FIRST"
         @allocateReducers()
         @finishMappers()
@@ -69,10 +67,6 @@ class JobWatcher
       when "MAPPING_ENDING"
         @checkMappers()
         @finishMappers()
-        index = 1000
-        for mapper in @mappers
-          if not @mapStatus[mapper].done
-            @queue[index++] = {name: 'MAPPER_DONE', id: mapper}
       when "REDUCE_START"
         @startReduce()
         @status = "REDUCE_STARTED"
@@ -80,10 +74,6 @@ class JobWatcher
       when "REDUCE_STARTED"
         @checkMappers()  # so that if a reducer fails we have the data to send it?
         @checkReducers()
-        index = 3000
-        for reducer in @reducers
-          if not @reduceStatus[reducer].done
-            @queue[index++] = {name: 'REDUCE_DONE', id: reducer}
       else
         # done
         console.log 'other state', @status
@@ -94,7 +84,7 @@ class JobWatcher
     else
       setTimeout () =>
         @loop()
-      , 300
+      , 1
 
 
   allocateMappers: () ->
@@ -157,8 +147,6 @@ class JobWatcher
     for child_id in @reducers
       @reduceStatus[child_id] = { done: false, index: index++ }
     @numReducersLeft = @numReducers
-    console.log('reducers')
-    console.log @reducers
 
 
   finishMappers: () ->
@@ -177,7 +165,6 @@ class JobWatcher
     @send reducer, { name: 'START_REDUCE', index: index, number_of_mappers: @mappers.length }
 
   checkReducers: () ->
-    console.log 'test'
     # see if anyone finished
     for message_id, message of @queue
       if message.name is 'REDUCE_DONE'
@@ -186,8 +173,6 @@ class JobWatcher
         @numReducersLeft--
         delete @queue[message_id]
 
-    console.log 'test2'
-    console.log 'reduceStatus', @reduceStatus
     # see if anyone failed
     failed_reducers = []
     now = new Date().getTime()
@@ -197,12 +182,9 @@ class JobWatcher
         #dis fucker dead
         failed_reducers.push reducer
 
-    console.log failed_reducers
-    console.log @numReducersLeft
     if failed_reducers.length > 0
       @retryReducers failed_reducers
     else if @numReducersLeft == 0
-      console.log 'done???'
       @status = "DONE"
 
 
@@ -225,7 +207,6 @@ class JobWatcher
 
 
   retryReducers: (failed_reducers) ->
-    console.log 'failed reducers: ', failed_reducers
     for failed_reducer in failed_reducers
       @retryReduce failed_reducer
 
