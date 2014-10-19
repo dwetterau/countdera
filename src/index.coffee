@@ -60,9 +60,6 @@ process_message = (message_id, message) ->
     watchers[jobid] = new JobWatcher(jobid)
     watchers[jobid].run()
   watchers[jobid].addMessage(message_id, message)
-  if message.name == 'FINISH_JOB'
-    delete watchers[jobid]
-
 
 message_ref = firebase.SERVER_MESSAGE_REF
 message_ref.on 'child_added', (new_child) ->

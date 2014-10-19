@@ -11,13 +11,13 @@ class JobWatcher
     @mapStatus = {}
     @reduceStatus = {}
     @doneMappers = []
-
-    @startIOServer()
+    @clientMap = {}
 
   initFromFirebase: (callback) ->
-    firebase.WORKER_STATUS_REF.on 'child_changed', (snapshot) =>
+    firebase.WORKER_STATUS_REF.on 'value', (snapshot) =>
       for name, value of snapshot.val()
         @clientMap[name] = value
+
     # keep it ALL in memory because reasons
     @clientMap = {}
     firebase.WORKER_STATUS_REF.once 'value', (snapshot) =>
@@ -28,6 +28,7 @@ class JobWatcher
       firebase.JOB_STATUS_REF.child(@jobid).child('urls').once 'value', (snapshot) =>
         @urls = snapshot.val()
         console.log @urls
+        @startIOServer()
         callback()
 
   startIOServer: () ->
@@ -42,7 +43,8 @@ class JobWatcher
     for child_id, child of @clientMap
       # Allow some time for RTT + delay
       if now - child.last_update < 15 * constants.HEARTBEAT_INTERVAL and (
-        child.status.state is 'IDLE')
+        child.status.state == 'IDLE')
+        child.status.state == 'NOT_IDLE'
         active_clients.push child_id
       if active_clients.length == num
         break
@@ -50,31 +52,31 @@ class JobWatcher
 
   addMessage: (messageid, message) ->
     @queue[messageid] = message
+    if message.name == 'FINISH_JOB'
+      @finish()
 
   run: () ->
     @initFromFirebase () =>
-      console.log('done init')
       @loop()
 
   loop: () ->
     switch @status
       when "STARTING"
         @allocateMappers()
-        #@startMap()
+        @startMap()
         @status = 'MAPPING_STARTED'
       when "MAPPING_STARTED"
         @checkMappers()
       when "MAPPING_ENDING_FIRST"
         @allocateReducers()
+        @startReduce()
         @finishMappers()
         @status = "MAPPING_ENDING"
       when "MAPPING_ENDING"
         @checkMappers()
         @finishMappers()
       when "REDUCE_START"
-        @startReduce()
         @status = "REDUCE_STARTED"
-        console.log 'reduce started'
       when "REDUCE_STARTED"
         @checkMappers()  # so that if a reducer fails we have the data to send it?
         @checkReducers()
@@ -83,9 +85,7 @@ class JobWatcher
         console.log 'other state', @status
 
 
-    if @status is "DONE"
-      @finish()
-    else
+    if @status != "DONE"
       setTimeout () =>
         @loop()
       , 1
@@ -99,7 +99,6 @@ class JobWatcher
       @mapStatus[child_id] = { done: false, index: index }
       index++
     @numMappersLeft = numMappers
-    console.log 'allocated all '  + @mappers.length + ' mappers'
 
   startMap: () ->
     index = 0
@@ -113,17 +112,16 @@ class JobWatcher
     # read through messages to see if anyone finished, if all finished, or if anyone is dead
 
     for message_id, message of @queue
-      if message.name is 'MAPPER_DONE'
+      if message.name == 'MAPPER_DONE'
 
         node = message.id
         if @mapStatus[node].done
           continue
-        console.log('mapper done ' + node)
         @numMappersLeft--
         @mapStatus[node].done = true
         @doneMappers.push node
         delete @queue[message_id]
-        if @status is "MAPPING_STARTED"
+        if @status == "MAPPING_STARTED"
           @status = "MAPPING_ENDING_FIRST"
 
 
@@ -131,18 +129,15 @@ class JobWatcher
     for worker_id in @mappers
       now = new Date().getTime()
       if now - @clientMap[worker_id].last_update > 15 * constants.HEARTBEAT_INTERVAL
-        console.log worker_id
         # he's dead jim
         toRetry.push worker_id
 
     if toRetry.length > 0
-      console.log 'killed ' + toRetry.length + ' nodes'
       for failed_worker in toRetry
         @retryMap failed_worker
 
-    if @numMappersLeft == 0 and @status != "REDUCE_STARTED"
+    if @numMappersLeft == 0 and @status == "MAPPING_ENDING"
       @status = "REDUCE_START"
-
 
   allocateReducers: () ->
     @reduceStatus = {}
@@ -167,17 +162,20 @@ class JobWatcher
       @startReducer reducer, index++
 
   startReducer: (reducer, index) ->
-    @send reducer, { name: 'START_REDUCE', index: index, number_of_mappers: @mappers.length }
+    @send reducer,
+      name: 'START_REDUCE',
+      job_id: @jobid,
+      index: index,
+      number_of_mappers: @mappers.length
 
   checkReducers: () ->
     # see if anyone finished
     for message_id, message of @queue
-      if message.name is 'REDUCE_DONE'
-        node = message.id
+      if message.name == 'REDUCE_DONE'
+        node = @reducers[message.index]
         @reduceStatus[node].done = true
         @numReducersLeft--
         delete @queue[message_id]
-
     # see if anyone failed
     failed_reducers = []
     now = new Date().getTime()
@@ -241,8 +239,6 @@ class JobWatcher
 
   # abstraction
   send: (node, jsonMessage) ->
-    console.log "sending message to", node
-    console.log "jsonMessage", jsonMessage
     worker = firebase.WORKER_MESSAGE_REF.child(node)
     worker.push jsonMessage, ((error) ->
       if error?

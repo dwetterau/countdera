@@ -37,13 +37,13 @@ add_handlers = (client) ->
     $("#header_text").html("Job Running!")
     $("#url_div").slideUp 300
 
-  firebase.JOB_STATUS_REF.child(client.get_id()).on 'child_added', (snapshot) ->
+  firebase.JOB_STATUS_REF.child(client._id).on 'child_added', (snapshot) ->
     if snapshot.name() == 'output_url'
       $('#output_url_div').html('<a href="' + snapshot.val() + '">Click to download output!</a>')
       client.finish_job()
 
 trim_code = (text) ->
-  lines = text.split "\n"
+  lines = text.trim().split "\n"
 
   # TODO: Verify the input? Nah.
   return lines.slice(1, lines.length - 1).join('\n')

@@ -46,19 +46,24 @@ class Worker
 
   process_message: (message) ->
     message_type = message.name
-    console.log "got a message", message_type
-    #todo we know the states so check if receiving a message is sane
-    switch message_type
-      when "MAP_START" then @start_map(message)
-      when "REDUCE_NODES" then @send_map_data(message)
-      when "JOB_DONE" then @finish_job(message)
-      when "START_REDUCE" then @start_reduce(message)
-      when "START_MAP_OUTPUT" then @add_data_src(message) #todo
-      when "MAP_OUTPUT" then @add_map_output(message)
-      when "END_MAP_OUTPUT" then @close_data_src(message) #todo
-      when "REDUCE_DONE" then @finish_reduce(message)
-      else
-        throw new Error("Unknown message!");
+    if message_type == "MAP_START"
+      @start_map(message)
+    else if message_type == "REDUCE_NODES"
+      @send_map_data(message)
+    else if message_type == "JOB_DONE"
+      @finish_job(message)
+    else if message_type == "START_REDUCE"
+      @start_reduce(message)
+    else if message_type == "START_MAP_OUTPUT"
+      @add_data_src(message)
+    else if message_type == "MAP_OUTPUT"
+      @add_map_output(message)
+    else if message_type == "END_MAP_OUTPUT"
+      @close_data_src(message)
+    else if message_type == "REDUCE_DONE"
+      @finish_reduce(message)
+    else
+      throw new Error("Unknown message!");
 
 
   listen: () ->
@@ -79,11 +84,11 @@ class Worker
     @data = null
     @mappings = null
     @map_code  = null
-    #todo invalidate everything
-    @_status.state = 'IDLE'
+    @clean_reduce()
 
   start_map: (map_start_message) ->
     @_status.state = 'MAPPER'
+    @heartbeat()
     @job_id = map_start_message.job_id
     @index = map_start_message.index
 
@@ -111,7 +116,6 @@ class Worker
 
   run_map_job: () ->
     @mappings = []
-
     emit = (key, object) =>
       @mappings.push [key, object]
 
@@ -125,8 +129,9 @@ class Worker
 
   map_done: () ->
     msg = {name: "MAPPER_DONE", job_id: @job_id, id: @_id}
-    send_to_server msg, () =>
+    @send_to_server msg, () =>
       @_status.state = 'MAPPER_DONE'
+      @heartbeat
 
   send_map_data: (reduce_node_list) ->
     num_nodes = reduce_node_list.nodes.length
@@ -137,7 +142,7 @@ class Worker
 
     for tuple in @mappings
       hash = @hashval(tuple[0])
-      to_send_client = reduce_node_list[hash % num_nodes]
+      to_send_client = reduce_node_list.nodes[hash % num_nodes]
       @send_to_friend to_send_client,
         name: 'MAP_OUTPUT'
         index: @index
@@ -151,14 +156,13 @@ class Worker
 
   start_reduce: (start_reduce_message) ->
     @_status.state = 'REDUCER'
+    @heartbeat()
     @job_id = start_reduce_message.job_id
     @index = start_reduce_message.index
     @number_of_mappers = start_reduce_message.number_of_mappers
     @reduce_data = {}
     @num_done = 0
     @mapper_done = (false for _ in @number_of_mappers)
-
-    @get_reduce_code()
 
   get_reduce_code: () ->
     deferred = q.defer()
@@ -178,7 +182,8 @@ class Worker
     @mapper_done[map_data_msg.index] = true
 
     if @num_done == @number_of_mappers
-      @do_reduce()
+      @get_reduce_code().then () =>
+        @do_reduce()
 
   add_map_output: (map_data_msg) ->
     if @mapper_done[map_data_msg.index]
@@ -201,8 +206,6 @@ class Worker
         data_for_jimmy[key].push(line)
       eval(@reduce_code)
 
-    console.log "running reduce code:"
-    console.log @reduce_code
     for key, list of collected_data
       reduce(key, list)
 
@@ -229,12 +232,12 @@ class Worker
       reducer: @index,
       job: @job_id
 
-    @clean_reduce
-
     @send_to_server
       name: "REDUCE_DONE"
       index: @index
       job_id: @job_id
+
+    @clean_reduce()
 
   clean_reduce: () ->
     @reduce_code = null
@@ -245,6 +248,7 @@ class Worker
     @num_done = 0
     @mapper_done = null
     @_status.state = 'IDLE'
+    @heartbeat()
 
   hashval: (s) ->
     hash = 0
