@@ -105,7 +105,7 @@ class Worker
   get_mapping_code: () ->
     #TODO figure out where this is
 
-    @map_code = null
+    @map_code = "pass"
 
   run_map_job: () ->
     @mappings = []
@@ -117,6 +117,7 @@ class Worker
       eval(@map_code)
 
     map(@data.split('\n'))
+    #todo will new lines work? jagnew says hrm
 
   map_done: () ->
     msg = {name: "MAPPER_DONE", id: @_id}
@@ -149,10 +150,14 @@ class Worker
     @job_id = start_reduce_message.job_id
     @number_of_mappers = start_reduce_message.number_of_mappers
     @reduce_data = {}
-    @mapper_done = []
-    for i in @number_of_mappers
-      mapper_done[i] = false
+    @mapper_done = (false for i in @number_of_mappers)
 
+    @get_reduce_code()
+
+  get_reduce_code: () ->
+    #todo something with job ids?
+
+    @reduce_code = "pass"
 
 
   add_data_src: (map_data_msg) ->
@@ -168,10 +173,30 @@ class Worker
     @reduce_data[map_data_msg.index].append(map_data_msg.key)
 
   do_reduce: (themsg_by_grandmaster_flash_and_the_furious_five) ->
+    collected_data = {}
+    for list in reduce_data
+      for item in list
+        if item[0] not in collected_data_data.keys
+          collected_data[item[0]] = []
+        for value in item[1]
+          collected_data[item[0]].append(value)
 
+    reduce = (key, list_of_objects) =>
+      eval(@reduce_code)
+
+    data_for_jimmy = {}
+    for key in collected_data.keyset
+      data_for_jimmy[key] = []
+      emit = (line) =>
+        data_for_jimmy[key].push(line)
+      reduce(key, collected_data[key])
+
+    finish_reduce
 
 
   finish_reduce: () ->
+    #todo hi-5 the backend with some reduce judo
+
 
 
   hashval (s) =>
