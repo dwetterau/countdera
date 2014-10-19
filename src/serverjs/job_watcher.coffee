@@ -27,7 +27,6 @@ class JobWatcher
       # get urls from firebase
       firebase.JOB_STATUS_REF.child(@jobid).child('urls').once 'value', (snapshot) =>
         @urls = snapshot.val()
-        console.log @urls
         @startIOServer()
         callback()
 
@@ -77,8 +76,11 @@ class JobWatcher
         @finishMappers()
       when "REDUCE_START"
         @status = "REDUCE_STARTED"
+        @checkMappers()
+        @finishMappers()
       when "REDUCE_STARTED"
         @checkMappers()  # so that if a reducer fails we have the data to send it?
+        @finishMappers()
         @checkReducers()
       else
         # done
