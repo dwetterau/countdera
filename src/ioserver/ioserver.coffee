@@ -35,7 +35,7 @@ class JobSet
       str = @serializeJobMap(jobMap)
       @saveToFile(str)
       firebase_db.JOB_STATUS_REF.child(@job).child('output_url')
-      .set(constants.SAVED_JOB_LOCATION + @job)
+      .set(constants.OUTPUT_DIR + @job)
 
   combineToJobMap: () ->
     jobMap = {}
@@ -62,7 +62,7 @@ class JobSet
 
   saveToFile: (str) ->
     console.log("Finished Job " + @job)
-    fs.writeFileSync(constants.SAVED_JOB_LOCATION + @job, str)
+    fs.writeFileSync(constants.TOP_DIR + constants.OUTPUT_DIR + @job, str)
 
 test = (fb) ->
   fb.push({name: "START_JOB", job: 7, numReducers: 1})
