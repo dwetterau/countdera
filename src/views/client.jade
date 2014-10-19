@@ -7,30 +7,37 @@ block content
                 h1(id="header_text") Enter your map code:
             div(id="map_div")
                 div(class="form-group")
-                    label(for="map_code_area" class="col-lg-2 control-label") Code:
-                    div(class="col-lg-8")
-                        textarea(id="map_code_area" class="form-control" style="font-family:monospace" rows="15" cols="40").
-                            function map(lines) { // Don't remove this line
+                    label(for="map_code_area" class="col-lg-1 control-label") Code:
+                    div(class="col-lg-10" id="map_drop")
+                        div
+                            textarea(id="map_code_area" class="form-control" style="font-family:monospace;font-size:11px" rows="15" cols="60").
+                                function map(lines) { // Don't remove this line
 
-                                emit(key, serializable_object) // Example emitting map result
-
-                            } // Don't remove this line
+                                    emit(key, serializable_object) // Example emitting map result
+                                } // Don't remove this line
+                        div
+                            input( type="file" id="map_upload")
+                            p( class="help-block") Upload a file or drag and drop one above!
                 div(class="form-group")
-                    div(class="col-lg-10 col-lg-offset-2")
+                    div(class="col-lg-10 col-lg-offset-1")
                         button(id="save_map" class="btn btn-primary") Save Map Code
 
             div(id="reduce_div" style="display:none;") 
                 div(class="form-group")
-                    label(for="reduce_code_area" class="col-lg-2 control-label") Code:
-                    div(class="col-lg-8")
-                        textarea(id="reduce_code_area" class="form-control" style="font-family:monospace" rows="15" cols="40").
-                            function reduce(key, map_output_list) { // Don't remove this line
+                    label(for="reduce_code_area" class="col-lg-1 control-label") Code:
+                    div(class="col-lg-10" id="reduce_drop")
+                        div
+                            textarea(id="reduce_code_area" class="form-control" style="font-family:monospace;font-size:11px" rows="15" cols="60").
+                                function reduce(key, map_output_list) { // Don't remove this line
 
-                                emit(output_line) // Example emitting output
+                                    emit(output_line) // Example emitting output
 
-                            } // Don't remove this line
+                                } // Don't remove this line
+                        div
+                            input( type="file" id="reduce_upload")
+                            p( class="help-block") Upload a file or drag and drop one above!
                 div(class="form-group")
-                    div(class="col-lg-10 col-lg-offset-2")
+                    div(class="col-lg-10 col-lg-offset-1")
                         button(id="save_reduce" class="btn btn-primary") Save Reduce Code
 
             div(id="url_div" style="display:none;")
@@ -42,4 +49,4 @@ block content
                 div(class="form-group")
                     div(class="col-lg-10 col-lg-offset-2")
                         button(id="save_urls" class="btn btn-primary") Run Job!
-
+        script(src="/javascripts/external/uploader.js")
