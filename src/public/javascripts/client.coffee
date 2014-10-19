@@ -1,4 +1,5 @@
 {Client} = require './lib/models/client.coffee'
+firebase = require '../firebase_client.coffee'
 
 module.exports =
   run: () ->
@@ -36,6 +37,10 @@ add_handlers = (client) ->
     $("#header_text").html("Job Running!")
     $("#url_div").slideUp 300
 
+  firebase.JOB_STATUS_REF.child(client.get_id()).on 'child_added', (snapshot) ->
+    if snapshot.name() == 'output_url'
+      $('#output_url_div').html('<a href="' + snapshot.val() + '">Click to download output!</a>')
+      client.finish_job()
 
 trim_code = (text) ->
   lines = text.split "\n"
