@@ -138,7 +138,7 @@ class Worker
   map_done: () ->
     msg = {name: "MAPPER_DONE", job_id: @job_id, id: @_id}
     @send_to_server msg, () =>
-      @_status.state = 'MAPPING_DONE'
+      @_status.state = 'MAPPER_DONE'
       @heartbeat()
       @statecallback(@_status.state)
 
