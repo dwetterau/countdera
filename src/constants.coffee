@@ -11,4 +11,4 @@ module.exports =
 
   HEARTBEAT_INTERVAL: 1000
 
-  SAVED_JOB_LOCATION: '/countdera/'
+  SAVED_JOB_LOCATION: '/countdera/output/'
