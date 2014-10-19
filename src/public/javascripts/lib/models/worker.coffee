@@ -234,6 +234,16 @@ class Worker
       index: @index
       job_id: @job_id
 
+  clean_reduce: () ->
+    @reduce_code = null
+    @reduce_data = null
+    @job_id = start_reduce_message.job_id
+    @number_of_mappers = start_reduce_message.number_of_mappers
+    @reduce_data = {}
+    @num_done = 0
+    @mapper_done
+    @_status.state = 'IDLE'
+
   hashval: (s) ->
     hash = 0
     chr = null
