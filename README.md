@@ -6,7 +6,7 @@ It's drag-and-drop, distributed, and fault-tolerant under crash failures.
 
 We built Countdera on top of Firebase and used two node servers (written in coffeescript) to manage jobs and nodes in the cluster.
 
-We wrote all of this code for [HackTX 2014](https://www.hackerleague.org/hackathons/hacktx-2014/hacks/countdera) 
+We wrote all of this code for [HackTX 2014](https://www.hackerleague.org/hackathons/hacktx-2014/hacks/countdera) in 24 hours
 where we made it to the finals but didn't place.
 
 ## Concept
@@ -16,10 +16,10 @@ and pay to use our massive cluster of these worker nodes to run their computatio
 replace online advertising and was inspired by Tidbit.
 
 The protocol we built Countdera on was inspired by MapReduce but was our own design. It makes some simplifying assumptions
-but is generally fully-featured. You can read more about the design of the protocol that this repo implements on [this website](https://dwett.com/demo).
+but is generally fully-featured. You can read more about the design of the protocol that this repo implements on [this website](http://dwett.com/demo).
 
 ## Running this as is for yourself
-- Create a Firebase and put the name of your Firebase in /src/config.coffee
+- Create a Firebase and put the name of your Firebase in `/src/config.coffee`
 - Create the directory `/countdera/output` on the machine you're running the server on.
 - Run `npm install` in the root of the project.
 - Run `npm start` to start the job tracking server and the static webserver on `http://localhost:3000`
