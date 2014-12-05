@@ -15,3 +15,4 @@ module.exports =
   OUTPUT_DIR: 'output/'
 
   BATCH_SIZE: 1000
+  HEARTBEAT_LOOP_PROB: .25

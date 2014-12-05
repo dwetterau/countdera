@@ -30,6 +30,7 @@ module.exports =
           str = "ERROR WE CRASHED. Just Kidding. I couldn't resist. IOserver write."
         else
           return
+      str = status
       currhtml = $("#worker_status").html()
       str = currhtml + "<br>" + str
       $("#worker_status").html(str)

@@ -120,8 +120,13 @@ main = () ->
       )
       when "REDUCER_OUTPUT" then (
         if (not((currentJobs[message.job] == null or currentJobs[message.job] == -1)))
-          currentJobs[message.job]
-          .addOutput(message.reducer, message.key, message.lines)
+          for m in message.message
+            key = m[0]
+            lines = m[1]
+            if typeof lines == 'number'
+              lines = [lines]
+            currentJobs[message.job].addOutput(
+              message.reducer, key, lines)
       )
       when "STOP_REDUCER_OUTPUT" then (
         if (not((currentJobs[message.job] == null or currentJobs[message.job] == -1)))

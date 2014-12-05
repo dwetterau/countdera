@@ -181,6 +181,8 @@ class Worker
           name: 'MAP_OUTPUT'
           index: @index
           key: batched_tuples
+        if Math.random() < constants.HEARTBEAT_LOOP_PROB
+          @heartbeat()
 
     for client in reduce_node_list.nodes
       @send_to_friend client,
@@ -231,6 +233,8 @@ class Worker
     # Unpack the batched message
     for tuple in map_data_msg.key.tuples
       @reduce_data[map_data_msg.index].push(tuple)
+      if Math.random() < constants.HEARTBEAT_LOOP_PROB
+        @heartbeat()
 
   do_reduce: () ->
     @_status.state = "REDUCING"
@@ -257,6 +261,20 @@ class Worker
 
 
   finish_reduce: (data_for_jimmy) ->
+    # We want to collect the key -> [output_lines] and send a certain number of lines at a time
+    messages = []
+    current_batch = []
+    current_batch_length = 0
+    for key, list of data_for_jimmy
+      if list.length + current_batch_length > constants.BATCH_SIZE
+        messages.push current_batch
+        current_batch = []
+        current_batch_length = 0
+      current_batch.push [key, if list.length == 1 then list[0] else list]
+      current_batch_length += list.length
+    if current_batch.length
+      messages.push current_batch
+
     # Start message to Jimmy
     @_status.state = "SENDING_TO_IO_SERVER"
     @statecallback(@_status.state)
@@ -265,13 +283,15 @@ class Worker
       reducer: @index,
       job: @job_id
 
-    for key, list of data_for_jimmy
-      firebase.IO_SERVER_MESSAGE_REF.push
+    for message in messages
+      firebase.IO_SERVER_MESSAGE_REF.push {
         name: "REDUCER_OUTPUT"
         reducer: @index
-        key: key
-        lines: list
+        message
         job: @job_id
+      }
+      if Math.random() < constants.HEARTBEAT_LOOP_PROB
+        @heartbeat()
 
     firebase.IO_SERVER_MESSAGE_REF.push
       name: "STOP_REDUCER_OUTPUT",
