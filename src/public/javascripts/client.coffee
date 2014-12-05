@@ -12,6 +12,7 @@ module.exports =
     , 100
 
 add_handlers = (client) ->
+  fix_text_areas()
   $('#save_map').click () ->
     map_code = trim_code($('#map_code_area').val())
     client.save_map_code(map_code)
@@ -39,10 +40,10 @@ add_handlers = (client) ->
 
   firebase.JOB_STATUS_REF.child(client._id).on 'child_added', (snapshot) ->
     if snapshot.name() == 'output_url'
-      url = 'http://' + window.location.hostname + '/' + snapshot.val()
+      url = '/' + snapshot.val()
       $('#output_url_div').html('<a href="' + url + '">Click to download output!</a>')
       client.finish_job()
-    $("#header_text").html("Job Finished!")
+      $("#header_text").html("Job Finished!")
 
 trim_code = (text) ->
   lines = text.trim().split "\n"
@@ -54,3 +55,19 @@ trim_code = (text) ->
 get_job_id_from_url = () ->
   path = window.location.pathname
   return path.substring(path.lastIndexOf('/') + 1)
+
+# Disable tab switching focus in the text areas
+fix_text_areas = () ->
+  $("textarea").keydown (e) ->
+    # If the keypress was a tab
+    if e.keyCode == 9
+      start = @.selectionStart
+      end = @.selectionEnd
+
+      $this = $(this)
+      value = $this.val()
+
+      $this.val value.substring(0, start) + "  " + value.substring(end)
+
+      @.selectionStart = @.selectionEnd = start + 1
+      return false

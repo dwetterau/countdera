@@ -7,13 +7,15 @@ html
         script(src='/javascripts/external/firebase.js')
         script(src='/javascripts/bundle.js')
 
-    body(style="margin:0;height:650px;")
+    body
         div(style=" margin-bottom: 40px;")
             div(class="navbar navbar-default navbar-fixed-top")
                 div(class="navbar-header")
                     a(class="navbar-brand" href="/") Countdera
+
             block content
-        footer(id="footer" type="footer" class="footer" style="bottom: 10px;margin-top:5%;height: 20px;width: 100%;")
-            div(class="row")
-            iframe( src="http://ghbtns.com/github-btn.html?user=dwetterau&repo=countdera&type=fork" allowtransparency="true" frameborder="0" scrolling="0" width="62" height="20")
-            span(style="font-size:16px") Created by John, Jim, Dan, Josh, and David
+
+        footer
+            .row
+                iframe( src="http://ghbtns.com/github-btn.html?user=dwetterau&repo=countdera&type=fork" allowtransparency="true" frameborder="0" scrolling="0" width="62" height="20")
+                span(style="font-size:16px") Created by John, Jim, Dan, Josh, and David

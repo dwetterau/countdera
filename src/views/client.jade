@@ -2,53 +2,56 @@ extends layout
 
 block content
     body
-        div(class="form-horizontal")
-            div(class="page-header")
-                h1(id="header_text") Enter your map code:
-            div(id="map_div")
-                div(class="form-group")
-                    label(for="map_code_area" class="col-lg-1 control-label") Code:
-                    div(class="col-lg-10" id="map_drop")
-                        div
-                            textarea(id="map_code_area" class="form-control" style="font-family:monospace;font-size:11px" rows="15" cols="60").
-                                function map(lines) { // Don't remove this line
+        .page-header
+            h1(id="header_text") Enter your map code:
+        .form-horizontal(id="map_div")
+            .form-group
+                label.col-lg-2.control-label(for="map_code_area") Code:
+                .col-lg-8(id="map_drop")
+                      textarea.form-control(id="map_code_area", style="font-family:monospace;font-size:11px", rows="15", cols="60").
+                          function map(lines) { // Don't remove this line
 
-                                    emit(key, serializable_object) // Example emitting map result
-                                } // Don't remove this line
-                        div
-                            input( type="file" id="map_upload")
-                            p( class="help-block") Upload a file or drag and drop one above!
-                div(class="form-group")
-                    div(class="col-lg-10 col-lg-offset-1")
-                        button(id="save_map" class="btn btn-primary") Save Map Code
+                              emit(key, serializable_object) // Example emitting map result
 
-            div(id="reduce_div" style="display:none;") 
-                div(class="form-group")
-                    label(for="reduce_code_area" class="col-lg-1 control-label") Code:
-                    div(class="col-lg-10" id="reduce_drop")
-                        div
-                            textarea(id="reduce_code_area" class="form-control" style="font-family:monospace;font-size:11px" rows="15" cols="60").
-                                function reduce(key, map_output_list) { // Don't remove this line
+                          } // Don't remove this line
+            .form-group
+                label.col-lg-2.control-label(for="map_upload") Map file
+                .col-lg-8
+                    input.form-control(type="file", name="map_upload", id="map_upload")
+            .form-group
+                .col-lg-offset-3.col-lg-6.well Upload a file or drag and drop one above!
+            .form-group
+                .col-lg-8.col-lg-offset-2
+                    button.btn.btn-primary(id="save_map") Save Map Code
 
-                                    emit(output_line) // Example emitting output
+        .form-horizontal(id="reduce_div" style="display:none;")
+            .form-group
+                label.col-lg-2.control-label(for="reduce_code_area") Code:
+                .col-lg-8(id="reduce_drop")
+                    textarea.form-control(id="reduce_code_area", style="font-family:monospace;font-size:11px", rows="15", cols="60").
+                        function reduce(key, map_output_list) { // Don't remove this line
 
-                                } // Don't remove this line
-                        div
-                            input( type="file" id="reduce_upload")
-                            p( class="help-block") Upload a file or drag and drop one above!
-                div(class="form-group")
-                    div(class="col-lg-10 col-lg-offset-1")
-                        button(id="save_reduce" class="btn btn-primary") Save Reduce Code
+                            emit(output_line) // Example emitting output
 
-            div(id="url_div" style="display:none;")
-                div(class="form-group")
-                    label(for="url_area" class="col-lg-2 control-label") Url:
-                    div(class="col-lg-8")
-                        textarea(id="url_area" class="form-control" rows="5" cols="40").
-                            data_url1, data_url2
-                div(class="form-group")
-                    div(class="col-lg-10 col-lg-offset-2")
-                        button(id="save_urls" class="btn btn-primary") Run Job!
+                        } // Don't remove this line
+            .form-group
+                label.col-lg-2.control-label(for="reduce_upload") Reduce file
+                input.col-lg-8(type="file" id="reduce_upload")
+            .form-group
+                .col-lg-offset-3.col-lg-6.well Upload a file or drag and drop one above!
+            .form-group
+                .col-lg-8.col-lg-offset-2
+                    button.btn.btn-primary(id="save_reduce") Save Reduce Code
+
+        .form-horizontal(id="url_div" style="display:none;")
+            .form-group
+                label.col-lg-2.control-label(for="url_area") Url:
+                .col-lg-8
+                    textarea.form-control(id="url_area", rows="5", cols="40").
+                        data_url1, data_url2
+            .form-group
+                .col-lg-8.col-lg-offset-2
+                    button.btn.btn-primary(id="save_urls") Run Job!
         script(src="/javascripts/external/uploader.js")
         div(id="client_status")
         div(id="output_url_div")

@@ -3,3 +3,4 @@ node_modules/
 bin/
 *.log
 *.DS_Store
+nohup.out
