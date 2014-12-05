@@ -13,3 +13,5 @@ module.exports =
 
   TOP_DIR: '/countdera/'
   OUTPUT_DIR: 'output/'
+
+  BATCH_SIZE: 1000

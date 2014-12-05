@@ -3,7 +3,6 @@
 module.exports =
   run: () ->
     stateMapper = (status) ->
-      console.log "I am a strong independent callback who don't need no context"
       switch status
         when "IDLE"
           str = "BigData Corporation-Senpai has not yet noticed you"

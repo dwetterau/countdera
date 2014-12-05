@@ -145,19 +145,42 @@ class Worker
   send_map_data: (reduce_node_list) ->
     @_status.state = "SENDING_MAPPED_RESULTS"
     @statecallback(@_status.state)
+
     num_nodes = reduce_node_list.nodes.length
+    # Group all of the messages together
+    reducer_queues = []
+    for client in reduce_node_list.nodes
+      reducer_queues.push []
+    for tuple in @mappings
+      hash = @hashval(tuple[0])
+      reducer_index = hash % num_nodes
+      reducer_queues[reducer_index].push tuple
+
+    for queue, queue_index in reducer_queues
+      batched_queue = []
+      # Batch the individual tuples
+      current_batch = []
+      for tuple, index in queue
+        if index > 0 and index % constants.BATCH_SIZE == 0
+          batched_queue.push {tuples: current_batch}
+          current_batch = []
+        current_batch.push tuple
+      if current_batch.length
+        batched_queue.push {tuples: current_batch}
+      reducer_queues[queue_index] = batched_queue
+
     for client in reduce_node_list.nodes
       @send_to_friend client,
         name: 'START_MAP_OUTPUT'
         index: @index
 
-    for tuple in @mappings
-      hash = @hashval(tuple[0])
-      to_send_client = reduce_node_list.nodes[hash % num_nodes]
-      @send_to_friend to_send_client,
-        name: 'MAP_OUTPUT'
-        index: @index
-        key: tuple
+    for queue, queue_index in reducer_queues
+      for batched_tuples, index in queue
+        to_send_client = reduce_node_list.nodes[queue_index]
+        @send_to_friend to_send_client,
+          name: 'MAP_OUTPUT'
+          index: @index
+          key: batched_tuples
 
     for client in reduce_node_list.nodes
       @send_to_friend client,
@@ -204,7 +227,10 @@ class Worker
   add_map_output: (map_data_msg) ->
     if @mapper_done[map_data_msg.index]
       return
-    @reduce_data[map_data_msg.index].push(map_data_msg.key)
+
+    # Unpack the batched message
+    for tuple in map_data_msg.key.tuples
+      @reduce_data[map_data_msg.index].push(tuple)
 
   do_reduce: () ->
     @_status.state = "REDUCING"
