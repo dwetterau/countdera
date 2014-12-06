@@ -41,7 +41,7 @@ class JobWatcher
     active_clients = []
     for child_id, child of @clientMap
       # Allow some time for RTT + delay
-      if now - child.last_update < 15 * constants.HEARTBEAT_INTERVAL and (
+      if now - child.last_update < 10 * constants.HEARTBEAT_INTERVAL and (
         child.status.state == 'IDLE')
         child.status.state == 'NOT_IDLE'
         active_clients.push child_id
@@ -249,7 +249,9 @@ class JobWatcher
 
 
   finish: () ->
-    # tell the mappers they are done
+    # tell the mappers they are done (if they're still around)
+    if not @mappers?
+      return
     for mapper in @mappers
       @send mapper, { name: 'JOB_DONE' }
 

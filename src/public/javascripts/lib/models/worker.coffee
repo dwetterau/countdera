@@ -18,6 +18,7 @@ class Worker
     setInterval () =>
       @heartbeat()
     , constants.HEARTBEAT_INTERVAL
+    @statecallback @_status.state
 
   heartbeat: () ->
     @_update_time()
@@ -174,6 +175,12 @@ class Worker
         name: 'START_MAP_OUTPUT'
         index: @index
 
+    total_sent = 0
+    total_to_send = 0
+    for queue in reducer_queues
+      for batched_tuples in queue
+        total_to_send += batched_tuples.tuples.length
+
     for queue, queue_index in reducer_queues
       for batched_tuples, index in queue
         to_send_client = reduce_node_list.nodes[queue_index]
@@ -183,11 +190,16 @@ class Worker
           key: batched_tuples
         if Math.random() < constants.HEARTBEAT_LOOP_PROB
           @heartbeat()
+        total_sent += batched_tuples.tuples.length
+        @statecallback(@_status.state, "Sent " + total_sent + " / " + total_to_send)
 
     for client in reduce_node_list.nodes
       @send_to_friend client,
         name: 'END_MAP_OUTPUT'
         index: @index
+
+    @_status.state = 'MAPPER_DONE'
+    @statecallback(@_status.state)
 
 
   start_reduce: (start_reduce_message) ->
@@ -254,13 +266,17 @@ class Worker
         data_for_jimmy[key].push(line)
       eval(@reduce_code)
 
+    num_reduced = 0
     for key, list of collected_data
       reduce(key, list)
+      num_reduced++
 
     @finish_reduce(data_for_jimmy)
 
 
   finish_reduce: (data_for_jimmy) ->
+    @_status.state = "SENDING_TO_IO_SERVER"
+    @statecallback(@_status.state)
     # We want to collect the key -> [output_lines] and send a certain number of lines at a time
     messages = []
     current_batch = []
@@ -276,8 +292,6 @@ class Worker
       messages.push current_batch
 
     # Start message to Jimmy
-    @_status.state = "SENDING_TO_IO_SERVER"
-    @statecallback(@_status.state)
     firebase.IO_SERVER_MESSAGE_REF.push
       name: "START_REDUCER_OUTPUT",
       reducer: @index,
