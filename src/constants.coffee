@@ -10,9 +10,9 @@ module.exports =
   FIREBASE_CLIENT_MESSAGES: 'master_messages'
 
   HEARTBEAT_INTERVAL: 1000
+  HEARTBEAT_TIMEOUT: 15000
 
   TOP_DIR: '/countdera/'
   OUTPUT_DIR: 'output/'
 
   BATCH_SIZE: 1000
-  HEARTBEAT_LOOP_PROB: .25

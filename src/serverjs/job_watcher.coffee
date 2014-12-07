@@ -14,10 +14,6 @@ class JobWatcher
     @clientMap = {}
 
   initFromFirebase: (callback) ->
-    firebase.WORKER_STATUS_REF.on 'value', (snapshot) =>
-      for name, value of snapshot.val()
-        @clientMap[name] = value
-
     # keep it ALL in memory because reasons
     @clientMap = {}
     firebase.WORKER_STATUS_REF.once 'value', (snapshot) =>
@@ -30,6 +26,16 @@ class JobWatcher
         @startIOServer()
         callback()
 
+    console.log "initial clientMap"
+    console.log @clientMap
+
+    # Listen to updates on the status ref...
+    firebase.WORKER_STATUS_REF.on 'child_changed', (snapshot) =>
+      #console.log "got heartbeat from " + snapshot.name()
+      now = new Date().getTime()
+      @clientMap[snapshot.name()] = snapshot.val()
+      @clientMap[snapshot.name()].last_upnow = now
+
   startIOServer: () ->
     firebase.IO_SERVER_MESSAGE_REF.push
       name: 'START_JOB',
@@ -41,7 +47,7 @@ class JobWatcher
     active_clients = []
     for child_id, child of @clientMap
       # Allow some time for RTT + delay
-      if now - child.last_update < 10 * constants.HEARTBEAT_INTERVAL and (
+      if now - child.last_update < constants.HEARTBEAT_TIMEOUT and (
         child.status.state == 'IDLE')
         child.status.state == 'NOT_IDLE'
         active_clients.push child_id
@@ -90,7 +96,7 @@ class JobWatcher
     if @status != "DONE"
       setTimeout () =>
         @loop()
-      , 1
+      , 500
 
 
   allocateMappers: () ->
@@ -112,6 +118,7 @@ class JobWatcher
 
   checkMappers: () ->
     # read through messages to see if anyone finished, if all finished, or if anyone is dead
+    now = new Date().getTime()
 
     for message_id, message of @queue
       if message.name == 'MAPPER_DONE'
@@ -129,9 +136,10 @@ class JobWatcher
 
     toRetry = []
     for worker_id in @mappers
-      now = new Date().getTime()
-      if now - @clientMap[worker_id].last_update > 15 * constants.HEARTBEAT_INTERVAL
+      if now - @clientMap[worker_id].last_update > constants.HEARTBEAT_TIMEOUT
         # he's dead jim
+        console.log "We think mapper with id: " + worker_id + " is dead. Restarting..."
+        @clientMap[worker_id].last_update = now
         toRetry.push worker_id
 
     if toRetry.length > 0
@@ -155,6 +163,7 @@ class JobWatcher
     if @doneMappers.length == 0
       return
     for mapper in @doneMappers
+      console.log "sending reduce nodes to mapper with id: " + mapper
       @sendReduceNodes mapper
     @doneMappers = []
 
@@ -171,6 +180,7 @@ class JobWatcher
       number_of_mappers: @mappers.length
 
   checkReducers: () ->
+    now = new Date().getTime()
     # see if anyone finished
     for message_id, message of @queue
       if message.name == 'REDUCE_DONE'
@@ -180,11 +190,11 @@ class JobWatcher
         delete @queue[message_id]
     # see if anyone failed
     failed_reducers = []
-    now = new Date().getTime()
     for reducer in @reducers
-      if now - @clientMap[reducer].last_update > 15 * constants.HEARTBEAT_INTERVAL and (
+      if now - @clientMap[reducer].last_update > constants.HEARTBEAT_TIMEOUT and (
         not @reduceStatus[reducer].done)
-        #dis fucker dead
+        console.log "We think that reducer with id: " + reducer + " is dead."
+        @clientMap[reducer].last_update = now
         failed_reducers.push reducer
 
     if failed_reducers.length > 0

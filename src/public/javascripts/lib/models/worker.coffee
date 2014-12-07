@@ -90,7 +90,6 @@ class Worker
 
   start_map: (map_start_message) ->
     @_status.state = 'MAPPER'
-    @heartbeat()
     @statecallback(@_status.state)
     @job_id = map_start_message.job_id
     @index = map_start_message.index
@@ -140,7 +139,6 @@ class Worker
     msg = {name: "MAPPER_DONE", job_id: @job_id, id: @_id}
     @send_to_server msg, () =>
       @_status.state = 'MAPPER_DONE'
-      @heartbeat()
       @statecallback(@_status.state)
 
   send_map_data: (reduce_node_list) ->
@@ -188,8 +186,6 @@ class Worker
           name: 'MAP_OUTPUT'
           index: @index
           key: batched_tuples
-        if Math.random() < constants.HEARTBEAT_LOOP_PROB
-          @heartbeat()
         total_sent += batched_tuples.tuples.length
         @statecallback(@_status.state, "Sent " + total_sent + " / " + total_to_send)
 
@@ -204,7 +200,6 @@ class Worker
 
   start_reduce: (start_reduce_message) ->
     @_status.state = 'REDUCER'
-    @heartbeat()
     @statecallback(@_status.state)
     @job_id = start_reduce_message.job_id
     @index = start_reduce_message.index
@@ -245,8 +240,6 @@ class Worker
     # Unpack the batched message
     for tuple in map_data_msg.key.tuples
       @reduce_data[map_data_msg.index].push(tuple)
-      if Math.random() < constants.HEARTBEAT_LOOP_PROB
-        @heartbeat()
 
   do_reduce: () ->
     @_status.state = "REDUCING"
@@ -304,8 +297,6 @@ class Worker
         message
         job: @job_id
       }
-      if Math.random() < constants.HEARTBEAT_LOOP_PROB
-        @heartbeat()
 
     firebase.IO_SERVER_MESSAGE_REF.push
       name: "STOP_REDUCER_OUTPUT",
@@ -328,7 +319,6 @@ class Worker
     @num_done = 0
     @mapper_done = null
     @_status.state = 'IDLE'
-    @heartbeat()
     @statecallback(@_status.state)
 
   hashval: (s) ->
