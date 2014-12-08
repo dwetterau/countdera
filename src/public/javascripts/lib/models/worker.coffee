@@ -16,13 +16,15 @@ class Worker
     @get_id()
     @listen()
     setInterval () =>
-      @heartbeat()
+      before = @_last_update
+      @heartbeat () ->
+        #console.log "Heartbeated... diff=", (new Date().getTime() - before)
     , constants.HEARTBEAT_INTERVAL
     @statecallback @_status.state
 
-  heartbeat: () ->
+  heartbeat: (callback) ->
     @_update_time()
-    @save_to_firebase()
+    @save_to_firebase(callback)
 
   get_id: () ->
     id_ref = firebase.WORKER_ID_REF.push "new_worker"

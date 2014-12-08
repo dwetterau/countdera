@@ -26,9 +26,6 @@ class JobWatcher
         @startIOServer()
         callback()
 
-    console.log "initial clientMap"
-    console.log @clientMap
-
     # Listen to updates on the status ref...
     firebase.WORKER_STATUS_REF.on 'child_changed', (snapshot) =>
       #console.log "got heartbeat from " + snapshot.name()
@@ -163,7 +160,6 @@ class JobWatcher
     if @doneMappers.length == 0
       return
     for mapper in @doneMappers
-      console.log "sending reduce nodes to mapper with id: " + mapper
       @sendReduceNodes mapper
     @doneMappers = []
 
@@ -252,11 +248,10 @@ class JobWatcher
   # abstraction
   send: (node, jsonMessage) ->
     worker = firebase.WORKER_MESSAGE_REF.child(node)
-    worker.push jsonMessage, ((error) ->
+    worker.push jsonMessage, (error) ->
       if error?
         console.log 'error sending message'
-        console.log error)
-
+        console.log error
 
   finish: () ->
     # tell the mappers they are done (if they're still around)
