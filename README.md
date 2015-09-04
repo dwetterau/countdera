@@ -16,7 +16,7 @@ and pay to use our massive cluster of these worker nodes to run their computatio
 replace online advertising and was inspired by Tidbit.
 
 The protocol we built Countdera on was inspired by MapReduce but was our own design. It makes some simplifying assumptions
-but is generally fully-featured. You can read more about the design of the protocol that this repo implements on [this website](http://dwett.com/demo).
+but is generally fully-featured. You can read more about the design of the protocol that this repo implements on [this website](https://dwett.com/projects/countdera/).
 
 ## Running this as is for yourself
 - Create a Firebase and put the name of your Firebase in `/src/config.coffee`
